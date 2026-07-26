@@ -40,15 +40,23 @@ const STATUS_COLOR: Record<string, string> = {
   expired: 'bg-orange-900 text-orange-300',
 };
 
+const DURATION_OPTIONS = [
+  { label: '1 Hari', days: 1 },
+  { label: '3 Hari', days: 3 },
+  { label: '1 Minggu', days: 7 },
+  { label: '1 Bulan', days: 30 },
+  { label: '1 Tahun', days: 365 },
+];
+
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ nama: '', alamat: '', email: '', gradeId: '' });
+  const [form, setForm] = useState({ nama: '', alamat: '', email: '', gradeId: '', durationDays: 365 });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [newActivation, setNewActivation] = useState<{ nama: string; code: string } | null>(null);
+  const [newActivation, setNewActivation] = useState<{ nama: string; code: string; nettopoEmail?: string; nettopoPassword?: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [editingCodeId, setEditingCodeId] = useState<string | null>(null);
   const [editCodeValue, setEditCodeValue] = useState('');
@@ -93,11 +101,17 @@ export default function TenantsPage() {
         alamat: form.alamat,
         email: form.email,
         gradeId: form.gradeId,
+        durationDays: form.durationDays,
       });
-      const data = res.data as { tenantId: string; activationCode: string };
-      setNewActivation({ nama: form.nama, code: data.activationCode });
+      const data = res.data as { tenantId: string; activationCode: string; nettopoEmail?: string; nettopoPassword?: string };
+      setNewActivation({
+        nama: form.nama,
+        code: data.activationCode,
+        nettopoEmail: data.nettopoEmail ?? undefined,
+        nettopoPassword: data.nettopoPassword ?? undefined,
+      });
       setCopied(false);
-      setForm({ nama: '', alamat: '', email: '', gradeId: plans[0]?.id ?? '' });
+      setForm({ nama: '', alamat: '', email: '', gradeId: plans[0]?.id ?? '', durationDays: 365 });
       setShowForm(false);
       await loadAll();
     } catch (err: unknown) {
@@ -112,12 +126,12 @@ export default function TenantsPage() {
     setTenants((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
   }
 
-  async function renewOneYear(t: Tenant) {
+  async function renewSubscription(t: Tenant, days: number) {
     const now = new Date();
     const currentExpiry = t.subscriptionExpiresAt?.toDate();
     const base = currentExpiry && currentExpiry > now ? currentExpiry : now;
     const next = new Date(base);
-    next.setFullYear(next.getFullYear() + 1);
+    next.setDate(next.getDate() + days);
 
     await updateDoc(doc(db, 'tenants', t.id), {
       subscriptionExpiresAt: next,
@@ -206,6 +220,21 @@ export default function TenantsPage() {
               Tutup
             </button>
           </div>
+          {newActivation.nettopoEmail && (
+            <div className="mt-4 pt-4 border-t border-green-800">
+              <p className="text-green-300 text-sm font-medium mb-2">
+                Login Peta Topologi (NetTopo):
+              </p>
+              <div className="text-sm text-green-200 space-y-1">
+                <p>Email: <span className="text-white font-mono">{newActivation.nettopoEmail}</span></p>
+                <p>Password: <span className="text-white font-mono">{newActivation.nettopoPassword}</span></p>
+                <p className="text-green-400/70 text-xs mt-1">
+                  Akses via menu &quot;Peta Topologi Jaringan&quot; di aplikasi bill.
+                  Ganti password setelah login pertama.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -257,6 +286,20 @@ export default function TenantsPage() {
                   <option key={p.id} value={p.id}>{p.nama}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Durasi Awal (setelah aktivasi)</label>
+              <select
+                value={form.durationDays}
+                onChange={(e) => setForm({ ...form, durationDays: Number(e.target.value) })}
+                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                {DURATION_OPTIONS.map((d) => (
+                  <option key={d.days} value={d.days}>{d.label}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Pilih durasi pendek (Hari/Minggu) untuk tenant demo.</p>
             </div>
           </div>
 
@@ -364,12 +407,20 @@ export default function TenantsPage() {
                           Suspend
                         </button>
                       )}
-                      <button
-                        onClick={() => renewOneYear(t)}
-                        className="text-xs text-blue-400 hover:text-blue-300"
+                      <select
+                        defaultValue=""
+                        onChange={(e) => {
+                          const days = Number(e.target.value);
+                          if (days > 0) renewSubscription(t, days);
+                          e.target.value = '';
+                        }}
+                        className="text-xs bg-gray-800 text-blue-400 border border-gray-700 rounded px-1.5 py-1 outline-none focus:ring-2 focus:ring-blue-500"
                       >
-                        Perpanjang 1 Tahun
-                      </button>
+                        <option value="" disabled>Perpanjang...</option>
+                        {DURATION_OPTIONS.map((d) => (
+                          <option key={d.days} value={d.days}>{d.label}</option>
+                        ))}
+                      </select>
                       <button
                         onClick={() => { setDeleteTarget(t); setDeleteConfirmText(''); setDeleteError(''); }}
                         className="text-xs text-red-500 hover:text-red-400"
