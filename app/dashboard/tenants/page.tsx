@@ -45,6 +45,8 @@ const DURATION_OPTIONS = [
   { label: '3 Hari', days: 3 },
   { label: '1 Minggu', days: 7 },
   { label: '1 Bulan', days: 30 },
+  { label: '2 Bulan', days: 60 },
+  { label: '3 Bulan', days: 90 },
   { label: '1 Tahun', days: 365 },
 ];
 
