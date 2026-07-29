@@ -13,6 +13,7 @@ const navItems = [
   { href: '/dashboard/tenants', label: 'Kelola RT/RW', icon: '🏘' },
   { href: '/dashboard/plans', label: 'Paket/Grade', icon: '💳' },
   { href: '/dashboard/jasa', label: 'Jasa ZasaQu', icon: '🛵' },
+  { href: '/dashboard/activity', label: 'Riwayat Aktivitas', icon: '📜' },
 ];
 
 function SidebarContent({ devMode, onNavigate, onLogout }: {

@@ -6,6 +6,8 @@ import {
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '@/lib/firebase';
+import { useAuth } from '@/lib/auth-context';
+import { logActivity } from '@/lib/audit-log';
 
 interface Plan {
   id: string;
@@ -58,6 +60,7 @@ const DURATION_OPTIONS = [
 ];
 
 export default function TenantsPage() {
+  const { user } = useAuth();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,6 +120,12 @@ export default function TenantsPage() {
         durationDays: form.durationDays,
       });
       const data = res.data as { tenantId: string; activationCode: string; nettopoEmail?: string; nettopoPassword?: string };
+      if (user) {
+        logActivity(user, 'tenant.create', data.tenantId, form.nama, {
+          gradeId: form.gradeId,
+          durationDays: form.durationDays,
+        });
+      }
       setNewActivation({
         nama: form.nama,
         code: data.activationCode,
@@ -135,8 +144,15 @@ export default function TenantsPage() {
   }
 
   async function setStatus(id: string, status: 'active' | 'suspended') {
+    const t = tenants.find((x) => x.id === id);
     await updateDoc(doc(db, 'tenants', id), { status });
-    setTenants((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+    setTenants((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x)));
+    if (user && t) {
+      logActivity(user, status === 'active' ? 'tenant.activate' : 'tenant.suspend', id, t.nama, {
+        from: t.status,
+        to: status,
+      });
+    }
   }
 
   async function renewSubscription(t: Tenant, days: number) {
@@ -150,6 +166,9 @@ export default function TenantsPage() {
       subscriptionExpiresAt: next,
       status: 'active',
     });
+    if (user) {
+      logActivity(user, 'tenant.renew', t.id, t.nama, { days, newExpiry: next.toISOString() });
+    }
     await loadAll();
   }
 
@@ -160,6 +179,12 @@ export default function TenantsPage() {
     try {
       const deleteTenant = httpsCallable(functions, 'deleteTenant');
       await deleteTenant({ tenantId: deleteTarget.id });
+      if (user) {
+        logActivity(user, 'tenant.delete', deleteTarget.id, deleteTarget.nama, {
+          pelangganCount: deleteTarget.pelangganCount,
+          gradeId: deleteTarget.gradeId,
+        });
+      }
       setTenants((prev) => prev.filter((t) => t.id !== deleteTarget.id));
       setDeleteTarget(null);
       setDeleteConfirmText('');
@@ -190,6 +215,12 @@ export default function TenantsPage() {
         features: newPlan.features || {},
         pricePerYearAtPurchase: newPlan.priceperYear,
       });
+      if (user) {
+        logActivity(user, 'tenant.grade_change', gradeChangeTarget.id, gradeChangeTarget.nama, {
+          from: gradeChangeTarget.gradeId,
+          to: newPlan.id,
+        });
+      }
       setGradeChangeTarget(null);
       await loadAll();
     } catch (err: unknown) {
@@ -213,9 +244,13 @@ export default function TenantsPage() {
   async function saveEditCode(id: string) {
     const code = editCodeValue.trim().toUpperCase();
     if (!code) return;
+    const t = tenants.find((x) => x.id === id);
     await updateDoc(doc(db, 'tenants', id), { activationCode: code });
-    setTenants((prev) => prev.map((t) => (t.id === id ? { ...t, activationCode: code } : t)));
+    setTenants((prev) => prev.map((x) => (x.id === id ? { ...x, activationCode: code } : x)));
     setEditingCodeId(null);
+    if (user && t) {
+      logActivity(user, 'tenant.activation_code_edit', id, t.nama, { from: t.activationCode, to: code });
+    }
   }
 
   function fmtDate(ts?: Timestamp) {
