@@ -9,6 +9,7 @@ import { db, functions } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 import { logActivity } from '@/lib/audit-log';
 import { daysUntil, isExpiringSoon } from '@/lib/expiry';
+import { recordPayment, PAYMENT_METHOD_LABEL, type PaymentMethod } from '@/lib/payments';
 
 interface Plan {
   id: string;
@@ -81,6 +82,13 @@ export default function TenantsPage() {
   const [gradeChangeNewId, setGradeChangeNewId] = useState('');
   const [gradeChangeSaving, setGradeChangeSaving] = useState(false);
   const [gradeChangeError, setGradeChangeError] = useState('');
+  const [renewTarget, setRenewTarget] = useState<Tenant | null>(null);
+  const [renewDays, setRenewDays] = useState(365);
+  const [renewAmount, setRenewAmount] = useState('');
+  const [renewMethod, setRenewMethod] = useState<PaymentMethod>('transfer');
+  const [renewNote, setRenewNote] = useState('');
+  const [renewSaving, setRenewSaving] = useState(false);
+  const [renewError, setRenewError] = useState('');
 
   async function loadAll() {
     setLoading(true);
@@ -171,6 +179,44 @@ export default function TenantsPage() {
       logActivity(user, 'tenant.renew', t.id, t.nama, { days, newExpiry: next.toISOString() });
     }
     await loadAll();
+  }
+
+  function suggestedAmount(t: Tenant, days: number): number {
+    if (!t.pricePerYearAtPurchase) return 0;
+    return Math.round(((t.pricePerYearAtPurchase / 365) * days) / 1000) * 1000;
+  }
+
+  function openRenew(t: Tenant) {
+    setRenewTarget(t);
+    setRenewDays(365);
+    setRenewAmount(String(suggestedAmount(t, 365)));
+    setRenewMethod('transfer');
+    setRenewNote('');
+    setRenewError('');
+  }
+
+  async function confirmRenew() {
+    if (!renewTarget) return;
+    setRenewSaving(true);
+    setRenewError('');
+    try {
+      await renewSubscription(renewTarget, renewDays);
+      if (user) {
+        await recordPayment(user, {
+          tenantId: renewTarget.id,
+          tenantNama: renewTarget.nama,
+          amount: Number(renewAmount) || 0,
+          method: renewMethod,
+          note: renewNote.trim(),
+          days: renewDays,
+        });
+      }
+      setRenewTarget(null);
+    } catch (err: unknown) {
+      setRenewError(err instanceof Error ? err.message : 'Gagal memperpanjang / mencatat pembayaran');
+    } finally {
+      setRenewSaving(false);
+    }
   }
 
   async function confirmDelete() {
@@ -495,20 +541,12 @@ export default function TenantsPage() {
                           Suspend
                         </button>
                       )}
-                      <select
-                        defaultValue=""
-                        onChange={(e) => {
-                          const days = Number(e.target.value);
-                          if (days > 0) renewSubscription(t, days);
-                          e.target.value = '';
-                        }}
-                        className="text-xs bg-gray-800 text-blue-400 border border-gray-700 rounded px-1.5 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                      <button
+                        onClick={() => openRenew(t)}
+                        className="text-xs text-blue-400 hover:text-blue-300"
                       >
-                        <option value="" disabled>Perpanjang...</option>
-                        {DURATION_OPTIONS.map((d) => (
-                          <option key={d.days} value={d.days}>{d.label}</option>
-                        ))}
-                      </select>
+                        Perpanjang...
+                      </button>
                       <select
                         defaultValue=""
                         onChange={(e) => {
@@ -536,6 +574,83 @@ export default function TenantsPage() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {renewTarget && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-md w-full">
+            <h2 className="text-white font-semibold text-base mb-4">Perpanjang &quot;{renewTarget.nama}&quot;</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Durasi</label>
+                <select
+                  value={renewDays}
+                  onChange={(e) => {
+                    const days = Number(e.target.value);
+                    setRenewDays(days);
+                    setRenewAmount(String(suggestedAmount(renewTarget, days)));
+                  }}
+                  className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {DURATION_OPTIONS.map((d) => (
+                    <option key={d.days} value={d.days}>{d.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Jumlah Dibayar (Rp)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={renewAmount}
+                  onChange={(e) => setRenewAmount(e.target.value)}
+                  className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Metode Pembayaran</label>
+                <select
+                  value={renewMethod}
+                  onChange={(e) => setRenewMethod(e.target.value as PaymentMethod)}
+                  className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {Object.entries(PAYMENT_METHOD_LABEL).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Catatan (opsional)</label>
+                <input
+                  value={renewNote}
+                  onChange={(e) => setRenewNote(e.target.value)}
+                  className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="No. referensi transfer, dll"
+                />
+              </div>
+            </div>
+            {renewError && (
+              <p className="text-red-400 text-sm bg-red-950 rounded-lg px-3 py-2 mt-3">{renewError}</p>
+            )}
+            <div className="flex gap-2 justify-end mt-4">
+              <button
+                type="button"
+                onClick={() => setRenewTarget(null)}
+                className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={renewSaving}
+                onClick={confirmRenew}
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+              >
+                {renewSaving ? 'Menyimpan...' : 'Konfirmasi & Catat Pembayaran'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
