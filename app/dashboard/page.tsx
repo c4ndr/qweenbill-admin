@@ -16,14 +16,19 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function load() {
-      const snap = await getDocs(collection(db, 'tenants'));
-      const all = snap.docs.map((d) => d.data());
-      setStats({
-        totalTenants: all.length,
-        activeTenants: all.filter((t) => t.status === 'active').length,
-        suspended: all.filter((t) => t.status === 'suspended').length,
-      });
-      setLoading(false);
+      try {
+        const snap = await getDocs(collection(db, 'tenants'));
+        const all = snap.docs.map((d) => d.data());
+        setStats({
+          totalTenants: all.length,
+          activeTenants: all.filter((t) => t.status === 'active').length,
+          suspended: all.filter((t) => t.status === 'suspended').length,
+        });
+      } catch (err) {
+        console.error('[Dashboard] Gagal muat tenants:', err);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);

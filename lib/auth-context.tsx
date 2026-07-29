@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from './firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from './firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -16,6 +17,15 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
 });
 
+async function checkDevMode(): Promise<boolean> {
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'dev_mode'));
+    return snap.exists() && snap.data().enabled === true;
+  } catch {
+    return false;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -23,18 +33,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
-      setUser(u);
+      let superAdmin = false;
       try {
         if (u) {
           const token = await u.getIdTokenResult();
-          setIsSuperAdmin(token.claims.superadmin === true);
-        } else {
-          setIsSuperAdmin(false);
+          superAdmin = token.claims.superadmin === true;
+
+          // Jika tidak punya claim superadmin, cek dev mode
+          if (!superAdmin) {
+            superAdmin = await checkDevMode();
+          }
         }
       } catch (err) {
         console.error('[AuthProvider] Gagal ambil token claims:', err);
-        setIsSuperAdmin(false);
       } finally {
+        setIsSuperAdmin(superAdmin);
+        setUser(u);
         setLoading(false);
       }
     });

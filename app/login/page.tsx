@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { auth, functions } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { isDevModeEnabled, setDevMode } from '@/lib/dev-mode';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +13,28 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [devMode, setDevModeState] = useState(false);
+  const [devModeLoading, setDevModeLoading] = useState(true);
+
+  useEffect(() => {
+    isDevModeEnabled().then((enabled) => {
+      setDevModeState(enabled);
+      setDevModeLoading(false);
+    });
+  }, []);
+
+  async function toggleDevMode() {
+    const next = !devMode;
+    setDevModeLoading(true);
+    try {
+      await setDevMode(next);
+      setDevModeState(next);
+    } catch {
+      setError('Gagal mengubah dev mode. Pastikan sudah login atau hubungi Firebase Console.');
+    } finally {
+      setDevModeLoading(false);
+    }
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -30,10 +53,14 @@ export default function LoginPage() {
       await auth.currentUser?.getIdToken(true);
       const tokenResult = await auth.currentUser?.getIdTokenResult();
 
+      // Jika dev mode aktif, izinkan akses meski tanpa claim superadmin
       if (tokenResult?.claims.superadmin !== true) {
-        await auth.signOut();
-        setError('Akses ditolak. Anda bukan superadmin.');
-        return;
+        const devModeActive = await isDevModeEnabled();
+        if (!devModeActive) {
+          await auth.signOut();
+          setError('Akses ditolak. Anda bukan superadmin. Aktifkan "Dev Mode" di bawah jika ini lingkungan development.');
+          return;
+        }
       }
 
       router.push('/dashboard');
@@ -90,6 +117,35 @@ export default function LoginPage() {
             {loading ? 'Masuk...' : 'Masuk'}
           </button>
         </form>
+
+        {process.env.NODE_ENV !== 'production' && !devModeLoading && (
+          <div className="mt-4 bg-gray-900 rounded-2xl p-4">
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <p className="text-white text-sm font-medium">Dev Mode</p>
+                <p className="text-gray-500 text-xs mt-0.5">
+                  {devMode
+                    ? 'Firestore rules bypass aktif — semua user login bisa baca/tulis'
+                    : 'Nonaktif — custom claims diperlukan'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={toggleDevMode}
+                disabled={devModeLoading}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  devMode ? 'bg-green-500' : 'bg-gray-700'
+                } ${devModeLoading ? 'opacity-50' : ''}`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                    devMode ? 'translate-x-5' : ''
+                  }`}
+                />
+              </button>
+            </label>
+          </div>
+        )}
       </div>
     </div>
   );

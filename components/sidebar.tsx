@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { isDevModeEnabled } from '@/lib/dev-mode';
 
 const navItems = [
   { href: '/dashboard', label: 'Ringkasan', icon: '⊞' },
@@ -16,6 +18,11 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [devMode, setDevMode] = useState(false);
+
+  useEffect(() => {
+    isDevModeEnabled().then(setDevMode);
+  }, []);
 
   async function handleLogout() {
     await signOut(auth);
@@ -27,6 +34,9 @@ export default function Sidebar() {
       <div className="p-5 border-b border-gray-800">
         <p className="text-white font-bold text-lg">QweenBill</p>
         <p className="text-gray-500 text-xs">Superadmin</p>
+        {devMode && (
+          <p className="text-green-400 text-xs font-medium mt-1">Dev Mode AKTIF</p>
+        )}
       </div>
 
       <nav className="flex-1 p-3 space-y-1">
