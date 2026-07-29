@@ -8,6 +8,7 @@ import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 import { logActivity } from '@/lib/audit-log';
+import { daysUntil, isExpiringSoon } from '@/lib/expiry';
 
 interface Plan {
   id: string;
@@ -422,8 +423,11 @@ export default function TenantsPage() {
               </tr>
             </thead>
             <tbody>
-              {tenants.map((t) => (
-                <tr key={t.id} className="border-b border-gray-800 last:border-0">
+              {tenants.map((t) => {
+                const expiringSoon = isExpiringSoon(t.status, t.subscriptionExpiresAt);
+                const daysLeft = daysUntil(t.subscriptionExpiresAt);
+                return (
+                <tr key={t.id} className={`border-b border-gray-800 last:border-0 ${expiringSoon ? 'bg-orange-950/40' : ''}`}>
                   <td className="px-4 py-3 text-white">
                     {t.nama}
                     <p className="text-xs text-gray-500">{t.email}</p>
@@ -437,7 +441,14 @@ export default function TenantsPage() {
                       {STATUS_LABEL[t.status]}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{fmtDate(t.subscriptionExpiresAt)}</td>
+                  <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                    {fmtDate(t.subscriptionExpiresAt)}
+                    {expiringSoon && (
+                      <span className="block text-orange-400 text-xs font-medium mt-0.5">
+                        {daysLeft === 0 ? 'Hari ini!' : `${daysLeft} hari lagi`}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     {editingCodeId === t.id ? (
                       <div className="flex items-center gap-2">
@@ -521,7 +532,8 @@ export default function TenantsPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
