@@ -11,6 +11,10 @@ interface Plan {
   id: string;
   nama: string;
   active: boolean;
+  customerLimit: number | null;
+  priceperYear: number;
+  routerLimit: number;
+  features: Record<string, boolean>;
 }
 
 interface Tenant {
@@ -21,10 +25,13 @@ interface Tenant {
   status: 'pending' | 'active' | 'suspended' | 'expired';
   gradeId: string;
   customerLimit: number | null;
+  pricePerYearAtPurchase?: number;
   pelangganCount: number;
   activationCode: string;
   subscriptionExpiresAt?: Timestamp;
 }
+
+const currency = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
 
 const STATUS_LABEL: Record<string, string> = {
   active: 'Aktif',
@@ -66,6 +73,10 @@ export default function TenantsPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [gradeChangeTarget, setGradeChangeTarget] = useState<Tenant | null>(null);
+  const [gradeChangeNewId, setGradeChangeNewId] = useState('');
+  const [gradeChangeSaving, setGradeChangeSaving] = useState(false);
+  const [gradeChangeError, setGradeChangeError] = useState('');
 
   async function loadAll() {
     setLoading(true);
@@ -159,6 +170,35 @@ export default function TenantsPage() {
     }
   }
 
+  function openGradeChange(t: Tenant, newGradeId: string) {
+    setGradeChangeTarget(t);
+    setGradeChangeNewId(newGradeId);
+    setGradeChangeError('');
+  }
+
+  async function confirmGradeChange() {
+    if (!gradeChangeTarget) return;
+    const newPlan = plans.find((p) => p.id === gradeChangeNewId);
+    if (!newPlan) return;
+    setGradeChangeSaving(true);
+    setGradeChangeError('');
+    try {
+      await updateDoc(doc(db, 'tenants', gradeChangeTarget.id), {
+        gradeId: newPlan.id,
+        customerLimit: newPlan.customerLimit,
+        routerLimit: newPlan.routerLimit,
+        features: newPlan.features || {},
+        pricePerYearAtPurchase: newPlan.priceperYear,
+      });
+      setGradeChangeTarget(null);
+      await loadAll();
+    } catch (err: unknown) {
+      setGradeChangeError(err instanceof Error ? err.message : 'Gagal mengubah grade');
+    } finally {
+      setGradeChangeSaving(false);
+    }
+  }
+
   async function copyCode(code: string) {
     await navigator.clipboard.writeText(code);
     setCopied(true);
@@ -189,7 +229,7 @@ export default function TenantsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="text-white text-xl font-semibold">Kelola RT/RW</h1>
         <button
           onClick={() => { setShowForm(!showForm); setError(''); }}
@@ -205,8 +245,8 @@ export default function TenantsPage() {
             Tenant &quot;{newActivation.nama}&quot; berhasil dibuat. Bagikan kode aktivasi ini ke tenant
             (lewat WA/Telegram bareng link APK) — dipakai sekali saat pertama kali buka aplikasi bill/teknisi/customer:
           </p>
-          <div className="flex items-center gap-3">
-            <code className="bg-gray-900 text-white text-lg font-mono px-4 py-2 rounded-lg tracking-wider">
+          <div className="flex flex-wrap items-center gap-3">
+            <code className="bg-gray-900 text-white text-lg font-mono px-4 py-2 rounded-lg tracking-wider break-all">
               {newActivation.code}
             </code>
             <button
@@ -243,7 +283,7 @@ export default function TenantsPage() {
       {showForm && (
         <form onSubmit={handleAdd} className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6 space-y-3">
           <h2 className="text-white font-medium text-sm">Tambah RT/RW Baru</h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-400 mb-1 block">Nama RT/RW</label>
               <input
@@ -423,6 +463,20 @@ export default function TenantsPage() {
                           <option key={d.days} value={d.days}>{d.label}</option>
                         ))}
                       </select>
+                      <select
+                        defaultValue=""
+                        onChange={(e) => {
+                          const newGradeId = e.target.value;
+                          if (newGradeId) openGradeChange(t, newGradeId);
+                          e.target.value = '';
+                        }}
+                        className="text-xs bg-gray-800 text-purple-400 border border-gray-700 rounded px-1.5 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="" disabled>Ubah Grade...</option>
+                        {plans.filter((p) => p.id !== t.gradeId).map((p) => (
+                          <option key={p.id} value={p.id}>{p.nama}</option>
+                        ))}
+                      </select>
                       <button
                         onClick={() => { setDeleteTarget(t); setDeleteConfirmText(''); setDeleteError(''); }}
                         className="text-xs text-red-500 hover:text-red-400"
@@ -437,6 +491,61 @@ export default function TenantsPage() {
           </table>
         </div>
       )}
+
+      {gradeChangeTarget && (() => {
+        const newPlan = plans.find((p) => p.id === gradeChangeNewId);
+        if (!newPlan) return null;
+        const isDowngrade = (newPlan.customerLimit ?? Infinity) < (gradeChangeTarget.customerLimit ?? Infinity);
+        const overQuota = newPlan.customerLimit != null && gradeChangeTarget.pelangganCount > newPlan.customerLimit;
+        return (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-md w-full">
+              <h2 className="text-white font-semibold text-base mb-2">
+                {isDowngrade ? 'Downgrade' : 'Upgrade'} Grade &quot;{gradeChangeTarget.nama}&quot;?
+              </h2>
+              <p className="text-gray-400 text-sm mb-3">
+                {gradeName(gradeChangeTarget.gradeId)} → <span className="text-white">{newPlan.nama}</span>
+              </p>
+              <div className="bg-gray-800 rounded-lg p-3 text-sm text-gray-300 space-y-1 mb-3">
+                <p>
+                  Kuota pelanggan:{' '}
+                  {gradeChangeTarget.customerLimit == null ? 'Tanpa batas' : gradeChangeTarget.customerLimit}
+                  {' → '}
+                  {newPlan.customerLimit == null ? 'Tanpa batas' : newPlan.customerLimit}
+                </p>
+                <p>Harga/tahun: {currency.format(newPlan.priceperYear)}</p>
+              </div>
+              {overQuota && (
+                <p className="text-yellow-400 text-sm bg-yellow-950 rounded-lg px-3 py-2 mb-3">
+                  Pelanggan aktif tenant ini ({gradeChangeTarget.pelangganCount}) sudah melebihi kuota grade baru
+                  ({newPlan.customerLimit}). Tenant tetap bisa jalan, tapi tidak bisa tambah pelanggan baru sampai
+                  di bawah kuota lagi.
+                </p>
+              )}
+              {gradeChangeError && (
+                <p className="text-red-400 text-sm bg-red-950 rounded-lg px-3 py-2 mb-3">{gradeChangeError}</p>
+              )}
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setGradeChangeTarget(null)}
+                  className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={gradeChangeSaving}
+                  onClick={confirmGradeChange}
+                  className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+                >
+                  {gradeChangeSaving ? 'Menyimpan...' : 'Konfirmasi'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">

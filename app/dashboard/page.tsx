@@ -46,7 +46,7 @@ export default function DashboardPage() {
       {loading ? (
         <p className="text-gray-500 text-sm">Memuat data...</p>
       ) : (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {cards.map((c) => (
             <div key={c.label} className="bg-gray-900 rounded-xl p-5 border border-gray-800">
               <p className="text-gray-400 text-sm mb-1">{c.label}</p>

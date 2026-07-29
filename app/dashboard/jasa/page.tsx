@@ -117,15 +117,15 @@ export default function JasaPage() {
 
             return (
               <div key={t.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="min-w-0">
                     <p className="text-white font-medium text-sm">{t.nama}</p>
                     {jasa && (
                       <p className="text-gray-500 text-xs mt-0.5 truncate max-w-xs">{jasa.url}</p>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     {jasa ? (
                       <>
                         <span className={`text-xs px-2 py-1 rounded-full font-medium ${jasa.aktif ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-400'}`}>

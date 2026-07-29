@@ -129,7 +129,7 @@ export default function PlansPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-white text-xl font-semibold">Paket / Grade</h1>
           <p className="text-gray-500 text-sm mt-1">
@@ -140,7 +140,7 @@ export default function PlansPage() {
         </div>
         <button
           onClick={openNew}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0"
+          className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0 self-start"
         >
           + Tambah Grade
         </button>
@@ -151,7 +151,7 @@ export default function PlansPage() {
           <h2 className="text-white font-medium text-sm">
             {editingId === 'new' ? 'Tambah Grade Baru' : `Edit Grade: ${editingId}`}
           </h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-400 mb-1 block">ID Grade (slug, tidak bisa diubah setelah dibuat)</label>
               <input
@@ -223,7 +223,7 @@ export default function PlansPage() {
 
           <div>
             <label className="text-xs text-gray-400 mb-2 block">Fitur yang diaktifkan</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {FEATURE_FLAGS.map((f) => (
                 <label key={f.key} className="flex items-center gap-2 text-sm text-gray-300">
                   <input
