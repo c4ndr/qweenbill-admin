@@ -14,6 +14,8 @@ interface Plan {
   routerLimit: number;
   features: Record<string, boolean>;
   active: boolean;
+  isTrial?: boolean;
+  trialDurationDays?: number;
 }
 
 // Daftar feature flag yang dikenal aplikasi mobile (qween_bill/teknisi/customer).
@@ -34,6 +36,8 @@ const emptyForm = {
   priceperYear: '',
   routerLimit: '1',
   active: true,
+  isTrial: false,
+  trialDurationDays: '7',
   features: Object.fromEntries(FEATURE_FLAGS.map((f) => [f.key, false])) as Record<string, boolean>,
 };
 
@@ -70,6 +74,8 @@ export default function PlansPage() {
       priceperYear: String(p.priceperYear),
       routerLimit: String(p.routerLimit),
       active: p.active,
+      isTrial: p.isTrial ?? false,
+      trialDurationDays: String(p.trialDurationDays ?? 7),
       features: { ...Object.fromEntries(FEATURE_FLAGS.map((f) => [f.key, false])), ...p.features },
     });
     setError('');
@@ -104,6 +110,11 @@ export default function PlansPage() {
       setError('Batas router tidak valid');
       return;
     }
+    const trialDurationDays = Number(form.trialDurationDays);
+    if (form.isTrial && (!Number.isFinite(trialDurationDays) || trialDurationDays < 1 || trialDurationDays > 7)) {
+      setError('Durasi trial harus antara 1-7 hari (auto-approve dibatasi maks 7 hari di Cloud Function)');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -115,6 +126,8 @@ export default function PlansPage() {
         priceperYear,
         routerLimit,
         active: form.active,
+        isTrial: form.isTrial,
+        trialDurationDays: form.isTrial ? trialDurationDays : null,
         features: form.features,
         updatedAt: new Date(),
       }, { merge: true });
@@ -219,6 +232,31 @@ export default function PlansPage() {
                 Aktif (tampil sebagai pilihan grade tenant baru)
               </label>
             </div>
+            <div className="flex items-center gap-2 pt-5">
+              <input
+                type="checkbox"
+                id="isTrial"
+                checked={form.isTrial}
+                onChange={(e) => setForm({ ...form, isTrial: e.target.checked })}
+                className="w-4 h-4"
+              />
+              <label htmlFor="isTrial" className="text-sm text-gray-300">
+                Plan trial (bisa auto-approve dari halaman /register, wajib id &quot;trial&quot;)
+              </label>
+            </div>
+            {form.isTrial && (
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Durasi Trial (hari, maks 7)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={7}
+                  value={form.trialDurationDays}
+                  onChange={(e) => setForm({ ...form, trialDurationDays: e.target.value })}
+                  className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            )}
           </div>
 
           <div>
@@ -277,9 +315,16 @@ export default function PlansPage() {
                   <h3 className="text-white font-semibold">{p.nama}</h3>
                   <p className="text-xs text-gray-500">{p.id}</p>
                 </div>
-                {!p.active && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-gray-800 text-gray-400">Nonaktif</span>
-                )}
+                <div className="flex flex-col items-end gap-1">
+                  {!p.active && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-gray-800 text-gray-400">Nonaktif</span>
+                  )}
+                  {p.isTrial && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-blue-900 text-blue-300 whitespace-nowrap">
+                      Trial {p.trialDurationDays ?? 7}h
+                    </span>
+                  )}
+                </div>
               </div>
               <p className="text-2xl font-bold text-white mb-1">{currency.format(p.priceperYear)}<span className="text-sm font-normal text-gray-500">/tahun</span></p>
               <p className="text-sm text-gray-400 mb-3">

@@ -11,6 +11,7 @@ import { isDevModeEnabled } from '@/lib/dev-mode';
 const navItems = [
   { href: '/dashboard', label: 'Ringkasan', icon: '⊞' },
   { href: '/dashboard/tenants', label: 'Kelola RT/RW', icon: '🏘' },
+  { href: '/dashboard/applications', label: 'Pendaftaran', icon: '📝' },
   { href: '/dashboard/plans', label: 'Paket/Grade', icon: '💳' },
   { href: '/dashboard/jasa', label: 'Jasa ZasaQu', icon: '🛵' },
   { href: '/dashboard/payments', label: 'Riwayat Pembayaran', icon: '💰' },

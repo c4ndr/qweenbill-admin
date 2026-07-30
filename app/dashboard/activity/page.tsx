@@ -26,6 +26,8 @@ const ACTION_LABEL: Record<ActivityAction, string> = {
   'tenant.grade_change': 'Ubah Grade',
   'tenant.activation_code_edit': 'Edit Kode Aktivasi',
   'tenant.delete': 'Hapus Tenant',
+  'application.approve': 'Setujui Pendaftaran',
+  'application.reject': 'Tolak Pendaftaran',
 };
 
 const ACTION_COLOR: Record<ActivityAction, string> = {
@@ -36,6 +38,8 @@ const ACTION_COLOR: Record<ActivityAction, string> = {
   'tenant.grade_change': 'bg-purple-900 text-purple-300',
   'tenant.activation_code_edit': 'bg-yellow-900 text-yellow-300',
   'tenant.delete': 'bg-red-950 text-red-400',
+  'application.approve': 'bg-green-900 text-green-300',
+  'application.reject': 'bg-red-900 text-red-300',
 };
 
 function describeDetail(log: ActivityLog): string {

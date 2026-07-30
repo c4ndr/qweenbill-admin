@@ -9,7 +9,9 @@ export type ActivityAction =
   | 'tenant.renew'
   | 'tenant.grade_change'
   | 'tenant.activation_code_edit'
-  | 'tenant.delete';
+  | 'tenant.delete'
+  | 'application.approve'
+  | 'application.reject';
 
 export async function logActivity(
   actor: User,
