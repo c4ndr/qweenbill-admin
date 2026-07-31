@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className="h-full antialiased">
+    <html lang="id" className="h-full antialiased scroll-smooth">
       <body className="min-h-full bg-gray-950">
         <AuthProvider>{children}</AuthProvider>
       </body>

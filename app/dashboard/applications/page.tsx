@@ -26,6 +26,7 @@ interface Application {
   activationCode?: string;
   rejectionReason?: string;
   autoApproved?: boolean;
+  requestedPlan?: string | null;
   createdAt?: Timestamp;
 }
 
@@ -88,7 +89,8 @@ export default function ApplicationsPage() {
 
   function openApprove(a: Application) {
     setApproveTarget(a);
-    setApproveGradeId(plans[0]?.id ?? '');
+    const requested = a.requestedPlan && plans.some((p) => p.id === a.requestedPlan) ? a.requestedPlan : null;
+    setApproveGradeId(requested ?? plans[0]?.id ?? '');
     setApproveDurationDays(365);
     setApproveError('');
   }
@@ -211,6 +213,11 @@ export default function ApplicationsPage() {
                 <p className="text-white font-medium">{a.namaUsaha}</p>
                 <p className="text-gray-400 text-sm">{a.namaPemilik} · {a.email} · {a.whatsapp}</p>
                 <p className="text-gray-500 text-xs mt-1">{a.alamat}</p>
+                {a.requestedPlan && (
+                  <p className="text-blue-400 text-xs mt-1">
+                    Paket diminta: {plans.find((p) => p.id === a.requestedPlan)?.nama ?? a.requestedPlan}
+                  </p>
+                )}
               </div>
               <div className="flex flex-col items-end gap-1">
                 <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${STATUS_COLOR[a.status]}`}>

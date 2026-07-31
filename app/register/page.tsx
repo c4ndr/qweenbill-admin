@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
@@ -19,7 +19,17 @@ function translateError(msg: string): string {
 }
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedPlan = searchParams.get('plan') || null;
   const [form, setForm] = useState({
     namaUsaha: '',
     namaPemilik: '',
@@ -119,6 +129,7 @@ export default function RegisterPage() {
         whatsapp: form.whatsapp,
         alamat: form.alamat,
         status: 'pending',
+        requestedPlan,
         createdAt: serverTimestamp(),
       });
 
@@ -152,6 +163,11 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-white">QweenBill</h1>
           <p className="text-gray-400 text-sm mt-1">Daftar Jadi Mitra Operator RT/RW Net</p>
+          {requestedPlan && (
+            <p className="text-blue-400 text-xs mt-2 bg-blue-950 inline-block rounded-full px-3 py-1">
+              Paket dipilih: {requestedPlan}
+            </p>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl p-6 space-y-4">
