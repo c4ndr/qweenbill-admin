@@ -343,6 +343,19 @@ function RegisterForm() {
           >
             {loading ? 'Mendaftar...' : 'Daftar'}
           </button>
+
+          <p className="text-center text-gray-500 text-xs">
+            Dengan mendaftar, Anda menyetujui{' '}
+            <a
+              href="https://qweenbill-privacy.pages.dev/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300"
+            >
+              Kebijakan Privasi
+            </a>{' '}
+            kami.
+          </p>
         </form>
 
         <p className="text-center text-gray-500 text-sm mt-4">

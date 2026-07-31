@@ -204,6 +204,14 @@ export default function LandingClient() {
             <Link href="/download" className="hover:text-white">Download</Link>
             <Link href="/tenant-login" className="hover:text-white">Masuk</Link>
             <Link href="/register" className="hover:text-white">Daftar</Link>
+            <a
+              href="https://qweenbill-privacy.pages.dev/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white"
+            >
+              Kebijakan Privasi
+            </a>
           </div>
         </div>
       </footer>
