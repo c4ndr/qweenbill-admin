@@ -26,6 +26,8 @@ const ACTION_LABEL: Record<ActivityAction, string> = {
   'tenant.grade_change': 'Ubah Grade',
   'tenant.activation_code_edit': 'Edit Kode Aktivasi',
   'tenant.delete': 'Hapus Tenant',
+  'tenant.nettopo_admin_reset': 'Reset Password NetTopo Admin',
+  'tenant.nettopo_teknisi_reset': 'Reset Password NetTopo Teknisi',
   'application.approve': 'Setujui Pendaftaran',
   'application.reject': 'Tolak Pendaftaran',
 };
@@ -38,6 +40,8 @@ const ACTION_COLOR: Record<ActivityAction, string> = {
   'tenant.grade_change': 'bg-purple-900 text-purple-300',
   'tenant.activation_code_edit': 'bg-yellow-900 text-yellow-300',
   'tenant.delete': 'bg-red-950 text-red-400',
+  'tenant.nettopo_admin_reset': 'bg-indigo-900 text-indigo-300',
+  'tenant.nettopo_teknisi_reset': 'bg-indigo-900 text-indigo-300',
   'application.approve': 'bg-green-900 text-green-300',
   'application.reject': 'bg-red-900 text-red-300',
 };
@@ -58,6 +62,10 @@ function describeDetail(log: ActivityLog): string {
       return `Kode: ${d.from ?? '-'} → ${d.to ?? '-'}`;
     case 'tenant.delete':
       return `${d.pelangganCount ?? 0} pelanggan, grade ${d.gradeId ?? '-'}`;
+    case 'tenant.nettopo_admin_reset':
+      return `Email: ${d.email ?? '-'}`;
+    case 'tenant.nettopo_teknisi_reset':
+      return `${d.teknisiNama ?? '-'} (${d.email ?? '-'})`;
     default:
       return '';
   }

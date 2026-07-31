@@ -10,6 +10,8 @@ export type ActivityAction =
   | 'tenant.grade_change'
   | 'tenant.activation_code_edit'
   | 'tenant.delete'
+  | 'tenant.nettopo_admin_reset'
+  | 'tenant.nettopo_teknisi_reset'
   | 'application.approve'
   | 'application.reject';
 

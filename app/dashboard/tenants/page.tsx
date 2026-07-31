@@ -33,6 +33,17 @@ interface Tenant {
   pelangganCount: number;
   activationCode: string;
   subscriptionExpiresAt?: Timestamp;
+  features?: Record<string, boolean>;
+}
+
+interface TeknisiRow {
+  id: string;
+  nama: string;
+  noHp: string;
+  role: string;
+  aktif: boolean;
+  nettopoEmail: string | null;
+  nettopoAccess: boolean;
 }
 
 const currency = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
@@ -89,6 +100,16 @@ export default function TenantsPage() {
   const [renewNote, setRenewNote] = useState('');
   const [renewSaving, setRenewSaving] = useState(false);
   const [renewError, setRenewError] = useState('');
+  const [netTopoAdminTarget, setNetTopoAdminTarget] = useState<Tenant | null>(null);
+  const [netTopoAdminSaving, setNetTopoAdminSaving] = useState(false);
+  const [netTopoAdminError, setNetTopoAdminError] = useState('');
+  const [netTopoAdminResult, setNetTopoAdminResult] = useState<{ email: string; password: string } | null>(null);
+  const [teknisiTarget, setTeknisiTarget] = useState<Tenant | null>(null);
+  const [teknisiList, setTeknisiList] = useState<TeknisiRow[]>([]);
+  const [teknisiLoading, setTeknisiLoading] = useState(false);
+  const [teknisiError, setTeknisiError] = useState('');
+  const [teknisiResetSavingId, setTeknisiResetSavingId] = useState<string | null>(null);
+  const [teknisiResetResult, setTeknisiResetResult] = useState<{ teknisiNama: string; email: string; password: string } | null>(null);
 
   async function loadAll() {
     setLoading(true);
@@ -216,6 +237,73 @@ export default function TenantsPage() {
       setRenewError(err instanceof Error ? err.message : 'Gagal memperpanjang / mencatat pembayaran');
     } finally {
       setRenewSaving(false);
+    }
+  }
+
+  function openNetTopoAdminReset(t: Tenant) {
+    setNetTopoAdminTarget(t);
+    setNetTopoAdminError('');
+    setNetTopoAdminResult(null);
+  }
+
+  async function confirmNetTopoAdminReset() {
+    if (!netTopoAdminTarget) return;
+    setNetTopoAdminSaving(true);
+    setNetTopoAdminError('');
+    try {
+      const resetFn = httpsCallable(functions, 'resetNetTopoAdminPassword');
+      const res = await resetFn({ tenantId: netTopoAdminTarget.id });
+      const data = res.data as { email: string; password: string };
+      setNetTopoAdminResult(data);
+      if (user) {
+        logActivity(user, 'tenant.nettopo_admin_reset', netTopoAdminTarget.id, netTopoAdminTarget.nama, {
+          email: data.email,
+        });
+      }
+    } catch (err: unknown) {
+      setNetTopoAdminError(err instanceof Error ? err.message : 'Gagal mereset password NetTopo admin');
+    } finally {
+      setNetTopoAdminSaving(false);
+    }
+  }
+
+  async function openTeknisiModal(t: Tenant) {
+    setTeknisiTarget(t);
+    setTeknisiList([]);
+    setTeknisiError('');
+    setTeknisiResetResult(null);
+    setTeknisiLoading(true);
+    try {
+      const listFn = httpsCallable(functions, 'listTeknisiForSuperadmin');
+      const res = await listFn({ tenantId: t.id });
+      const data = res.data as { teknisi: TeknisiRow[] };
+      setTeknisiList(data.teknisi);
+    } catch (err: unknown) {
+      setTeknisiError(err instanceof Error ? err.message : 'Gagal memuat daftar teknisi');
+    } finally {
+      setTeknisiLoading(false);
+    }
+  }
+
+  async function resetTeknisiNetTopoPassword(teknisi: TeknisiRow) {
+    if (!teknisiTarget) return;
+    setTeknisiResetSavingId(teknisi.id);
+    setTeknisiError('');
+    try {
+      const resetFn = httpsCallable(functions, 'resetNetTopoTeknisiPassword');
+      const res = await resetFn({ tenantId: teknisiTarget.id, teknisiId: teknisi.id });
+      const data = res.data as { email: string; password: string };
+      setTeknisiResetResult({ teknisiNama: teknisi.nama, email: data.email, password: data.password });
+      if (user) {
+        logActivity(user, 'tenant.nettopo_teknisi_reset', teknisiTarget.id, teknisiTarget.nama, {
+          teknisiNama: teknisi.nama,
+          email: data.email,
+        });
+      }
+    } catch (err: unknown) {
+      setTeknisiError(err instanceof Error ? err.message : 'Gagal mereset password NetTopo teknisi');
+    } finally {
+      setTeknisiResetSavingId(null);
     }
   }
 
@@ -547,6 +635,22 @@ export default function TenantsPage() {
                       >
                         Perpanjang...
                       </button>
+                      {t.features?.petaTopologi && (
+                        <>
+                          <button
+                            onClick={() => openNetTopoAdminReset(t)}
+                            className="text-xs text-indigo-400 hover:text-indigo-300"
+                          >
+                            Reset NetTopo Admin
+                          </button>
+                          <button
+                            onClick={() => openTeknisiModal(t)}
+                            className="text-xs text-indigo-400 hover:text-indigo-300"
+                          >
+                            Kelola Teknisi
+                          </button>
+                        </>
+                      )}
                       <select
                         defaultValue=""
                         onChange={(e) => {
@@ -750,6 +854,133 @@ export default function TenantsPage() {
                 {deleting ? 'Menghapus...' : 'Hapus Permanen'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {netTopoAdminTarget && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-md w-full">
+            <h2 className="text-white font-semibold text-base mb-2">
+              Reset Password NetTopo Admin &quot;{netTopoAdminTarget.nama}&quot;?
+            </h2>
+            {!netTopoAdminResult ? (
+              <>
+                <p className="text-gray-400 text-sm mb-4">
+                  Password login NetTopo akun admin tenant ini akan diganti dengan password baru random.
+                  Password lama tidak bisa dipakai lagi.
+                </p>
+                {netTopoAdminError && (
+                  <p className="text-red-400 text-sm bg-red-950 rounded-lg px-3 py-2 mb-3">{netTopoAdminError}</p>
+                )}
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setNetTopoAdminTarget(null)}
+                    className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={netTopoAdminSaving}
+                    onClick={confirmNetTopoAdminReset}
+                    className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+                  >
+                    {netTopoAdminSaving ? 'Mereset...' : 'Reset Password'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-green-300 text-sm font-medium mb-2">
+                  Password berhasil direset. Tampilkan HANYA sekali ini — bagikan ke tenant lewat WA/Telegram:
+                </p>
+                <div className="bg-gray-800 rounded-lg p-3 text-sm text-gray-200 space-y-1 mb-4">
+                  <p>Email: <span className="text-white font-mono">{netTopoAdminResult.email}</span></p>
+                  <p>Password: <span className="text-white font-mono">{netTopoAdminResult.password}</span></p>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setNetTopoAdminTarget(null)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Selesai
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {teknisiTarget && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-semibold text-base">
+                Kelola Teknisi &quot;{teknisiTarget.nama}&quot;
+              </h2>
+              <button
+                onClick={() => setTeknisiTarget(null)}
+                className="text-gray-500 hover:text-gray-400 text-sm"
+              >
+                Tutup
+              </button>
+            </div>
+
+            {teknisiResetResult && (
+              <div className="bg-gray-800 border border-green-800 rounded-lg p-3 mb-4">
+                <p className="text-green-300 text-sm font-medium mb-2">
+                  Password NetTopo &quot;{teknisiResetResult.teknisiNama}&quot; berhasil direset — tampilkan HANYA sekali ini:
+                </p>
+                <div className="text-sm text-gray-200 space-y-1">
+                  <p>Email: <span className="text-white font-mono">{teknisiResetResult.email}</span></p>
+                  <p>Password: <span className="text-white font-mono">{teknisiResetResult.password}</span></p>
+                </div>
+              </div>
+            )}
+
+            {teknisiError && (
+              <p className="text-red-400 text-sm bg-red-950 rounded-lg px-3 py-2 mb-3">{teknisiError}</p>
+            )}
+
+            {teknisiLoading ? (
+              <p className="text-gray-500 text-sm">Memuat data...</p>
+            ) : teknisiList.length === 0 ? (
+              <p className="text-gray-500 text-sm">Tenant ini belum punya teknisi.</p>
+            ) : (
+              <div className="space-y-2">
+                {teknisiList.map((tk) => (
+                  <div key={tk.id} className="bg-gray-800 rounded-lg p-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-white text-sm font-medium">
+                        {tk.nama}{' '}
+                        <span className="text-xs text-gray-500 font-normal">
+                          ({tk.role}{tk.aktif ? '' : ', nonaktif'})
+                        </span>
+                      </p>
+                      <p className="text-xs text-gray-500">{tk.noHp}</p>
+                      {tk.nettopoAccess ? (
+                        <p className="text-xs text-indigo-400 mt-0.5">NetTopo: {tk.nettopoEmail}</p>
+                      ) : (
+                        <p className="text-xs text-gray-600 mt-0.5">Belum ada akses NetTopo</p>
+                      )}
+                    </div>
+                    {tk.nettopoAccess && (
+                      <button
+                        onClick={() => resetTeknisiNetTopoPassword(tk)}
+                        disabled={teknisiResetSavingId === tk.id}
+                        className="text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-50 whitespace-nowrap"
+                      >
+                        {teknisiResetSavingId === tk.id ? 'Mereset...' : 'Reset Password'}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
