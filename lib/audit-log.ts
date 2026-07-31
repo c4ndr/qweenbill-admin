@@ -12,6 +12,7 @@ export type ActivityAction =
   | 'tenant.delete'
   | 'tenant.nettopo_admin_reset'
   | 'tenant.nettopo_teknisi_reset'
+  | 'tenant.admin_pin_reset'
   | 'application.approve'
   | 'application.reject';
 

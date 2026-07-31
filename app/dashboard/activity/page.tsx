@@ -28,6 +28,7 @@ const ACTION_LABEL: Record<ActivityAction, string> = {
   'tenant.delete': 'Hapus Tenant',
   'tenant.nettopo_admin_reset': 'Reset Password NetTopo Admin',
   'tenant.nettopo_teknisi_reset': 'Reset Password NetTopo Teknisi',
+  'tenant.admin_pin_reset': 'Reset PIN Admin App',
   'application.approve': 'Setujui Pendaftaran',
   'application.reject': 'Tolak Pendaftaran',
 };
@@ -42,6 +43,7 @@ const ACTION_COLOR: Record<ActivityAction, string> = {
   'tenant.delete': 'bg-red-950 text-red-400',
   'tenant.nettopo_admin_reset': 'bg-indigo-900 text-indigo-300',
   'tenant.nettopo_teknisi_reset': 'bg-indigo-900 text-indigo-300',
+  'tenant.admin_pin_reset': 'bg-orange-900 text-orange-300',
   'application.approve': 'bg-green-900 text-green-300',
   'application.reject': 'bg-red-900 text-red-300',
 };
@@ -66,6 +68,8 @@ function describeDetail(log: ActivityLog): string {
       return `Email: ${d.email ?? '-'}`;
     case 'tenant.nettopo_teknisi_reset':
       return `${d.teknisiNama ?? '-'} (${d.email ?? '-'})`;
+    case 'tenant.admin_pin_reset':
+      return `Tier: Admin ${d.tier ?? '-'}`;
     default:
       return '';
   }

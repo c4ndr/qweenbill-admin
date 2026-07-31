@@ -110,6 +110,10 @@ export default function TenantsPage() {
   const [teknisiError, setTeknisiError] = useState('');
   const [teknisiResetSavingId, setTeknisiResetSavingId] = useState<string | null>(null);
   const [teknisiResetResult, setTeknisiResetResult] = useState<{ teknisiNama: string; email: string; password: string } | null>(null);
+  const [pinResetTarget, setPinResetTarget] = useState<{ tenant: Tenant; tier: 1 | 2 } | null>(null);
+  const [pinResetSaving, setPinResetSaving] = useState(false);
+  const [pinResetError, setPinResetError] = useState('');
+  const [pinResetDone, setPinResetDone] = useState(false);
 
   async function loadAll() {
     setLoading(true);
@@ -237,6 +241,32 @@ export default function TenantsPage() {
       setRenewError(err instanceof Error ? err.message : 'Gagal memperpanjang / mencatat pembayaran');
     } finally {
       setRenewSaving(false);
+    }
+  }
+
+  function openPinReset(t: Tenant, tier: 1 | 2) {
+    setPinResetTarget({ tenant: t, tier });
+    setPinResetError('');
+    setPinResetDone(false);
+  }
+
+  async function confirmPinReset() {
+    if (!pinResetTarget) return;
+    setPinResetSaving(true);
+    setPinResetError('');
+    try {
+      const resetFn = httpsCallable(functions, 'resetAdminPin');
+      await resetFn({ tenantId: pinResetTarget.tenant.id, tier: pinResetTarget.tier });
+      setPinResetDone(true);
+      if (user) {
+        logActivity(user, 'tenant.admin_pin_reset', pinResetTarget.tenant.id, pinResetTarget.tenant.nama, {
+          tier: pinResetTarget.tier,
+        });
+      }
+    } catch (err: unknown) {
+      setPinResetError(err instanceof Error ? err.message : 'Gagal mereset PIN admin');
+    } finally {
+      setPinResetSaving(false);
     }
   }
 
@@ -635,6 +665,18 @@ export default function TenantsPage() {
                       >
                         Perpanjang...
                       </button>
+                      <button
+                        onClick={() => openPinReset(t, 1)}
+                        className="text-xs text-orange-400 hover:text-orange-300"
+                      >
+                        Reset PIN Admin1
+                      </button>
+                      <button
+                        onClick={() => openPinReset(t, 2)}
+                        className="text-xs text-orange-400 hover:text-orange-300"
+                      >
+                        Reset PIN Admin2
+                      </button>
                       {t.features?.petaTopologi && (
                         <>
                           <button
@@ -854,6 +896,61 @@ export default function TenantsPage() {
                 {deleting ? 'Menghapus...' : 'Hapus Permanen'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {pinResetTarget && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-md w-full">
+            <h2 className="text-white font-semibold text-base mb-2">
+              Reset PIN Admin{pinResetTarget.tier} &quot;{pinResetTarget.tenant.nama}&quot;?
+            </h2>
+            {!pinResetDone ? (
+              <>
+                <p className="text-gray-400 text-sm mb-4">
+                  PIN {pinResetTarget.tier === 1 ? 'Admin 1' : 'Admin 2'} tenant ini akan dihapus dari server.
+                  {pinResetTarget.tier === 1
+                    ? ' Tenant akan diminta setup PIN baru dari awal saat app dibuka lagi.'
+                    : ' Admin 1 tenant ini perlu set ulang PIN Admin 2 dari menu Pengaturan.'}
+                </p>
+                {pinResetError && (
+                  <p className="text-red-400 text-sm bg-red-950 rounded-lg px-3 py-2 mb-3">{pinResetError}</p>
+                )}
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setPinResetTarget(null)}
+                    className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pinResetSaving}
+                    onClick={confirmPinReset}
+                    className="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+                  >
+                    {pinResetSaving ? 'Mereset...' : 'Reset PIN'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-green-300 text-sm font-medium mb-4">
+                  PIN Admin{pinResetTarget.tier} berhasil direset.
+                </p>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setPinResetTarget(null)}
+                    className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
