@@ -10,13 +10,17 @@ interface AppConfig {
   pesan: string;
 }
 
-const APPS: { id: string; label: string }[] = [
-  { id: 'qween_teknisi', label: 'QweenBill Teknisi' },
-  { id: 'qween_bill', label: 'QweenBill Admin (RT/RW)' },
-  { id: 'qween_customer', label: 'QweenBill Customer' },
+const APPS: { id: string; label: string; defaultUpdateUrl: string }[] = [
+  { id: 'qween_teknisi', label: 'QweenBill Teknisi', defaultUpdateUrl: 'https://saas.qbill.uk/download' },
+  { id: 'qween_bill', label: 'QweenBill Admin (RT/RW)', defaultUpdateUrl: 'https://saas.qbill.uk/download' },
+  {
+    id: 'qween_customer',
+    label: 'QweenBill Customer',
+    defaultUpdateUrl: 'https://play.google.com/store/apps/details?id=com.qweenbill.customer',
+  },
 ];
 
-const emptyConfig: AppConfig = { minBuildNumber: '', updateUrl: 'https://saas.qbill.uk/download', pesan: '' };
+const emptyConfig: AppConfig = { minBuildNumber: '', updateUrl: '', pesan: '' };
 
 export default function AppVersionPage() {
   const [configs, setConfigs] = useState<Record<string, AppConfig>>({});
@@ -29,11 +33,11 @@ export default function AppVersionPage() {
       const entries = await Promise.all(
         APPS.map(async (app) => {
           const snap = await getDoc(doc(db, 'app_config', app.id));
-          if (!snap.exists()) return [app.id, emptyConfig] as const;
+          if (!snap.exists()) return [app.id, { ...emptyConfig, updateUrl: app.defaultUpdateUrl }] as const;
           const d = snap.data();
           return [app.id, {
             minBuildNumber: d.minBuildNumber != null ? String(d.minBuildNumber) : '',
-            updateUrl: d.updateUrl || emptyConfig.updateUrl,
+            updateUrl: d.updateUrl || app.defaultUpdateUrl,
             pesan: d.pesan || '',
           }] as const;
         })
@@ -49,12 +53,13 @@ export default function AppVersionPage() {
 
   async function handleSave(appId: string) {
     const cfg = configs[appId] ?? emptyConfig;
+    const defaultUrl = APPS.find((a) => a.id === appId)?.defaultUpdateUrl ?? '';
     setSavingId(appId);
     setSavedId(null);
     try {
       await setDoc(doc(db, 'app_config', appId), {
         minBuildNumber: cfg.minBuildNumber.trim() === '' ? 0 : Number(cfg.minBuildNumber),
-        updateUrl: cfg.updateUrl.trim() || emptyConfig.updateUrl,
+        updateUrl: cfg.updateUrl.trim() || defaultUrl,
         pesan: cfg.pesan.trim(),
       });
       setSavedId(appId);
