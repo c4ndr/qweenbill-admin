@@ -16,6 +16,7 @@ const navItems = [
   { href: '/dashboard/jasa', label: 'Jasa ZasaQu', icon: '🛵' },
   { href: '/dashboard/payments', label: 'Riwayat Pembayaran', icon: '💰' },
   { href: '/dashboard/activity', label: 'Riwayat Aktivitas', icon: '📜' },
+  { href: '/dashboard/app-version', label: 'Versi Aplikasi', icon: '📱' },
 ];
 
 function SidebarContent({ devMode, onNavigate, onLogout }: {
