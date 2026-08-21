@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { collection, getDocs, Timestamp } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 import { useEffect, useState } from 'react';
 import { isDevModeEnabled } from '@/lib/dev-mode';
+import { isExpiringSoon } from '@/lib/expiry';
 import {
   LayoutDashboard,
   Building2,
@@ -18,11 +20,13 @@ import {
   LogOut,
   Menu,
   Shield,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', label: 'Ringkasan', icon: LayoutDashboard },
@@ -47,11 +51,12 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
             key={item.href}
             href={item.href}
             onClick={onNavigate}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            className={cn(
+              'flex items-center gap-[8.4px] rounded-lg px-[8.4px] py-[7px] text-[13.5px] font-medium transition-colors',
               isActive
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-            }`}
+                ? 'border border-primary/35 bg-primary/12 text-[#d2cefd]'
+                : 'border border-transparent text-[#b2b6ca] hover:bg-primary/8 hover:text-foreground'
+            )}
           >
             <item.icon className="h-4 w-4 shrink-0" />
             {item.label}
@@ -66,9 +71,22 @@ export default function Sidebar() {
   const router = useRouter();
   const [devMode, setDevMode] = useState(false);
   const [open, setOpen] = useState(false);
+  const [expiringSoonCount, setExpiringSoonCount] = useState(0);
 
   useEffect(() => {
     isDevModeEnabled().then(setDevMode);
+  }, []);
+
+  useEffect(() => {
+    getDocs(collection(db, 'tenants'))
+      .then((snap) => {
+        const count = snap.docs.filter((d) => {
+          const t = d.data() as { status: string; subscriptionExpiresAt?: Timestamp };
+          return isExpiringSoon(t.status, t.subscriptionExpiresAt);
+        }).length;
+        setExpiringSoonCount(count);
+      })
+      .catch(() => setExpiringSoonCount(0));
   }, []);
 
   async function handleLogout() {
@@ -79,21 +97,29 @@ export default function Sidebar() {
   const sidebarContent = (
     <>
       <div className="flex items-center gap-2 px-4 py-4">
-        <Shield className="h-5 w-5 text-primary" />
+        <Shield className="h-[18px] w-[18px] text-primary" />
         <div>
-          <p className="text-sm font-semibold leading-none">QweenBill</p>
-          <p className="text-xs text-muted-foreground mt-1">Superadmin</p>
+          <p className="text-[14.5px] font-medium leading-none">QweenBill</p>
+          <p className="text-[11px] text-muted-foreground mt-1">Superadmin</p>
         </div>
         {devMode && (
-          <Badge variant="outline" className="ml-auto border-green-500/50 text-green-400 text-[10px]">
+          <Badge variant="outline" className="ml-auto border-green-500/50 text-green-400 text-[9.5px]">
             DEV
           </Badge>
         )}
       </div>
       <Separator />
       <NavList onNavigate={() => setOpen(false)} />
-      <div className="mt-auto p-2">
-        <Separator className="mb-2" />
+      <div className="mt-auto space-y-2 p-2">
+        {expiringSoonCount > 0 && (
+          <div className="flex items-start gap-2 rounded-lg bg-primary/10 p-3 text-[12px] text-[#d2cefd]">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-primary" />
+            <span>
+              {expiringSoonCount} langganan kadaluarsa dalam 7 hari.
+            </span>
+          </div>
+        )}
+        <Separator />
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-muted-foreground"
@@ -112,7 +138,7 @@ export default function Sidebar() {
       <div className="sticky top-0 z-40 flex items-center justify-between border-b bg-background px-4 py-3 md:hidden">
         <div className="flex items-center gap-2">
           <Shield className="h-4 w-4" />
-          <span className="text-sm font-semibold">QweenBill</span>
+          <span className="text-sm font-medium">QweenBill</span>
         </div>
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" />}>
@@ -125,7 +151,7 @@ export default function Sidebar() {
       </div>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-56 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
+      <aside className="hidden md:flex w-[228px] shrink-0 flex-col border-r border-sidebar-border bg-gradient-to-b from-[#1b1d2d] to-[#161826] text-sidebar-foreground">
         {sidebarContent}
       </aside>
     </>
