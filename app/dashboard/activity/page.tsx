@@ -116,7 +116,7 @@ export default function ActivityPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Riwayat Aktivitas</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Riwayat Aktivitas</h1>
         <p className="text-muted-foreground text-sm mt-1">
           100 aksi superadmin terbaru terhadap tenant (suspend, hapus, ubah grade, dst). Log ini tidak bisa diubah/dihapus.
         </p>
@@ -129,7 +129,7 @@ export default function ActivityPage() {
             <History className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{logs.length}</div>
+            <div className="text-2xl font-medium">{logs.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -137,7 +137,7 @@ export default function ActivityPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Aksi Hari Ini</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-medium">
               {logs.filter((l) => {
                 const d = l.createdAt?.toDate();
                 const now = new Date();
@@ -151,7 +151,7 @@ export default function ActivityPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Tenant Unik</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-medium">
               {new Set(logs.map((l) => l.tenantId)).size}
             </div>
           </CardContent>

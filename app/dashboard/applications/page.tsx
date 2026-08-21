@@ -191,7 +191,7 @@ export default function ApplicationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Pendaftaran Tenant</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Pendaftaran Tenant</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Kelola pendaftaran RT/RW baru. Setujui atau tolak pendaftaran yang masuk.
         </p>
@@ -204,7 +204,7 @@ export default function ApplicationsPage() {
             <FileText className="size-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">{pendingCount}</div>
+            <div className="text-2xl font-medium text-yellow-500">{pendingCount}</div>
           </CardContent>
         </Card>
         <Card>
@@ -213,7 +213,7 @@ export default function ApplicationsPage() {
             <CheckCircle className="size-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">
+            <div className="text-2xl font-medium text-green-500">
               {applications.filter((a) => a.status === 'approved').length}
             </div>
           </CardContent>
@@ -224,7 +224,7 @@ export default function ApplicationsPage() {
             <XCircle className="size-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-500">
+            <div className="text-2xl font-medium text-red-500">
               {applications.filter((a) => a.status === 'rejected').length}
             </div>
           </CardContent>

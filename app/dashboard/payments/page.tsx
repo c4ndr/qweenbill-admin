@@ -69,7 +69,7 @@ export default function PaymentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Riwayat Pembayaran</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Riwayat Pembayaran</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Catatan pembayaran perpanjangan langganan tenant (dicatat manual saat superadmin memperpanjang).
         </p>
@@ -84,7 +84,7 @@ export default function PaymentsPage() {
             <Wallet className="size-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">{currency.format(totalAmount)}</div>
+            <div className="text-2xl font-medium text-green-500">{currency.format(totalAmount)}</div>
             <p className="text-xs text-muted-foreground mt-1">{payments.length} transaksi</p>
           </CardContent>
         </Card>
@@ -96,7 +96,7 @@ export default function PaymentsPage() {
             <TrendingUp className="size-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-500">{currency.format(totalThisMonth)}</div>
+            <div className="text-2xl font-medium text-blue-500">{currency.format(totalThisMonth)}</div>
           </CardContent>
         </Card>
       </div>

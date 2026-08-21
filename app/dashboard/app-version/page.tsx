@@ -86,7 +86,7 @@ export default function AppVersionPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Versi Aplikasi</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Versi Aplikasi</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Paksa pengguna dengan app usang untuk update sebelum bisa lanjut pakai app. Cek dijalankan
           di splash screen, sebelum login — kosongkan &quot;Build Minimal&quot; untuk menonaktifkan paksaan.

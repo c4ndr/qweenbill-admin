@@ -114,7 +114,7 @@ export default function JasaPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Jasa ZasaQu</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Jasa ZasaQu</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Pilih RT/RW yang ada di coverage area ZasaQu dan aktifkan link untuk pelanggannya.
         </p>

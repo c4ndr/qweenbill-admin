@@ -5,6 +5,9 @@ import {
   collection, getDocs, setDoc, doc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Check, X } from 'lucide-react';
 
 interface Plan {
   id: string; // gradeId — dipakai sebagai referensi dari dokumen tenant
@@ -42,6 +45,9 @@ const emptyForm = {
 };
 
 const currency = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
+
+const inputClass = 'w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:border-primary disabled:opacity-50';
+const labelClass = 'mb-1 block text-xs text-muted-foreground';
 
 export default function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -142,81 +148,76 @@ export default function PlansPage() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-white text-xl font-semibold">Paket / Grade</h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <h1 className="text-xl font-medium text-foreground">Paket / Grade</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Definisi grade langganan tenant. Perubahan di sini hanya berlaku untuk tenant baru
             atau saat perpanjangan — tenant yang sudah aktif entitlement-nya sudah tersalin (snapshot)
             ke dokumen tenant masing-masing.
           </p>
         </div>
-        <button
-          onClick={openNew}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0 self-start"
-        >
-          + Tambah Grade
-        </button>
+        <Button onClick={openNew} className="shrink-0 self-start">+ Tambah Grade</Button>
       </div>
 
       {editingId && (
-        <form onSubmit={handleSave} className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6 space-y-4">
-          <h2 className="text-white font-medium text-sm">
+        <form onSubmit={handleSave} className="mb-6 space-y-4 rounded-lg border border-border bg-card p-5">
+          <h2 className="text-sm font-medium text-foreground">
             {editingId === 'new' ? 'Tambah Grade Baru' : `Edit Grade: ${editingId}`}
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">ID Grade (slug, tidak bisa diubah setelah dibuat)</label>
+              <label className={labelClass}>ID Grade (slug, tidak bisa diubah setelah dibuat)</label>
               <input
                 value={form.gradeId}
                 onChange={(e) => setForm({ ...form, gradeId: e.target.value })}
                 disabled={editingId !== 'new'}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                className={inputClass}
                 placeholder="basic"
                 required
               />
             </div>
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Nama Tampilan</label>
+              <label className={labelClass}>Nama Tampilan</label>
               <input
                 value={form.nama}
                 onChange={(e) => setForm({ ...form, nama: e.target.value })}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className={inputClass}
                 placeholder="Basic"
                 required
               />
             </div>
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Batas Pelanggan (kosongkan = tanpa batas)</label>
+              <label className={labelClass}>Batas Pelanggan (kosongkan = tanpa batas)</label>
               <input
                 type="number"
                 min={1}
                 value={form.customerLimit}
                 onChange={(e) => setForm({ ...form, customerLimit: e.target.value })}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className={inputClass}
                 placeholder="200"
               />
             </div>
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Harga per Tahun (Rp)</label>
+              <label className={labelClass}>Harga per Tahun (Rp)</label>
               <input
                 type="number"
                 min={0}
                 value={form.priceperYear}
                 onChange={(e) => setForm({ ...form, priceperYear: e.target.value })}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className={inputClass}
                 placeholder="300000"
                 required
               />
             </div>
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Batas Router MikroTik</label>
+              <label className={labelClass}>Batas Router MikroTik</label>
               <input
                 type="number"
                 min={1}
                 value={form.routerLimit}
                 onChange={(e) => setForm({ ...form, routerLimit: e.target.value })}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className={inputClass}
                 required
               />
             </div>
@@ -226,9 +227,9 @@ export default function PlansPage() {
                 id="active"
                 checked={form.active}
                 onChange={(e) => setForm({ ...form, active: e.target.checked })}
-                className="w-4 h-4"
+                className="size-4 accent-primary"
               />
-              <label htmlFor="active" className="text-sm text-gray-300">
+              <label htmlFor="active" className="text-sm text-foreground/80">
                 Aktif (tampil sebagai pilihan grade tenant baru)
               </label>
             </div>
@@ -238,32 +239,32 @@ export default function PlansPage() {
                 id="isTrial"
                 checked={form.isTrial}
                 onChange={(e) => setForm({ ...form, isTrial: e.target.checked })}
-                className="w-4 h-4"
+                className="size-4 accent-primary"
               />
-              <label htmlFor="isTrial" className="text-sm text-gray-300">
+              <label htmlFor="isTrial" className="text-sm text-foreground/80">
                 Plan trial (bisa auto-approve dari halaman /register, wajib id &quot;trial&quot;)
               </label>
             </div>
             {form.isTrial && (
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Durasi Trial (hari, maks 7)</label>
+                <label className={labelClass}>Durasi Trial (hari, maks 7)</label>
                 <input
                   type="number"
                   min={1}
                   max={7}
                   value={form.trialDurationDays}
                   onChange={(e) => setForm({ ...form, trialDurationDays: e.target.value })}
-                  className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
               </div>
             )}
           </div>
 
           <div>
-            <label className="text-xs text-gray-400 mb-2 block">Fitur yang diaktifkan</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label className="mb-2 block text-xs text-muted-foreground">Fitur yang diaktifkan</label>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {FEATURE_FLAGS.map((f) => (
-                <label key={f.key} className="flex items-center gap-2 text-sm text-gray-300">
+                <label key={f.key} className="flex items-center gap-2 text-sm text-foreground/80">
                   <input
                     type="checkbox"
                     checked={form.features[f.key] ?? false}
@@ -271,7 +272,7 @@ export default function PlansPage() {
                       ...form,
                       features: { ...form.features, [f.key]: e.target.checked },
                     })}
-                    className="w-4 h-4"
+                    className="size-4 accent-primary"
                   />
                   {f.label}
                 </label>
@@ -280,71 +281,64 @@ export default function PlansPage() {
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm bg-red-950 rounded-lg px-3 py-2">{error}</p>
+            <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
           )}
 
           <div className="flex gap-2 pt-1">
-            <button
-              type="submit"
-              disabled={saving}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-            >
+            <Button type="submit" disabled={saving}>
               {saving ? 'Menyimpan...' : 'Simpan'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditingId(null)}
-              className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition-colors"
-            >
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setEditingId(null)}>
               Batal
-            </button>
+            </Button>
           </div>
         </form>
       )}
 
       {loading ? (
-        <p className="text-gray-500 text-sm">Memuat data...</p>
+        <p className="text-sm text-muted-foreground">Memuat data...</p>
       ) : plans.length === 0 ? (
-        <p className="text-gray-500 text-sm">Belum ada grade. Tambahkan Basic/Pro/Enterprise dulu.</p>
+        <p className="text-sm text-muted-foreground">Belum ada grade. Tambahkan Basic/Pro/Enterprise dulu.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {plans.map((p) => (
-            <div key={p.id} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-              <div className="flex items-start justify-between mb-2">
+            <div key={p.id} className="rounded-lg border border-border bg-card p-5">
+              <div className="mb-2 flex items-start justify-between">
                 <div>
-                  <h3 className="text-white font-semibold">{p.nama}</h3>
-                  <p className="text-xs text-gray-500">{p.id}</p>
+                  <h3 className="font-medium text-foreground">{p.nama}</h3>
+                  <p className="font-mono text-xs text-[#75798c]">{p.id}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  {!p.active && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-gray-800 text-gray-400">Nonaktif</span>
-                  )}
+                  {!p.active && <Badge variant="secondary">Nonaktif</Badge>}
                   {p.isTrial && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-blue-900 text-blue-300 whitespace-nowrap">
-                      Trial {p.trialDurationDays ?? 7}h
-                    </span>
+                    <Badge className="whitespace-nowrap">Trial {p.trialDurationDays ?? 7}h</Badge>
                   )}
                 </div>
               </div>
-              <p className="text-2xl font-bold text-white mb-1">{currency.format(p.priceperYear)}<span className="text-sm font-normal text-gray-500">/tahun</span></p>
-              <p className="text-sm text-gray-400 mb-3">
+              <p className="mb-1 text-2xl font-medium text-foreground">
+                {currency.format(p.priceperYear)}
+                <span className="text-sm font-normal text-muted-foreground">/tahun</span>
+              </p>
+              <p className="mb-3 text-sm text-muted-foreground">
                 {p.customerLimit == null ? 'Tanpa batas pelanggan' : `Maks ${p.customerLimit} pelanggan`}
                 {' · '}{p.routerLimit} router
               </p>
-              <ul className="space-y-1 mb-4">
-                {FEATURE_FLAGS.map((f) => (
-                  <li key={f.key} className="text-xs flex items-center gap-2">
-                    <span className={p.features?.[f.key] ? 'text-green-400' : 'text-gray-600'}>
-                      {p.features?.[f.key] ? '✓' : '✕'}
-                    </span>
-                    <span className={p.features?.[f.key] ? 'text-gray-300' : 'text-gray-600'}>{f.label}</span>
-                  </li>
-                ))}
+              <ul className="mb-4 space-y-1">
+                {FEATURE_FLAGS.map((f) => {
+                  const active = p.features?.[f.key];
+                  return (
+                    <li key={f.key} className="flex items-center gap-2 text-xs">
+                      {active ? (
+                        <Check className="size-3.5 shrink-0 text-primary" />
+                      ) : (
+                        <X className="size-3.5 shrink-0 text-[#595d6c]" />
+                      )}
+                      <span className={active ? 'text-foreground/80' : 'text-[#595d6c]'}>{f.label}</span>
+                    </li>
+                  );
+                })}
               </ul>
-              <button
-                onClick={() => openEdit(p)}
-                className="text-xs text-blue-400 hover:text-blue-300"
-              >
+              <button onClick={() => openEdit(p)} className="text-xs text-primary hover:underline">
                 Edit
               </button>
             </div>
