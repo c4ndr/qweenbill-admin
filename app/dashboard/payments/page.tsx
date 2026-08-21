@@ -6,6 +6,10 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { PAYMENT_METHOD_LABEL, type PaymentMethod } from '@/lib/payments';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Wallet, TrendingUp } from 'lucide-react';
 
 interface Payment {
   id: string;
@@ -54,61 +58,90 @@ export default function PaymentsPage() {
     })
     .reduce((sum, p) => sum + (p.amount || 0), 0);
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground text-sm">Memuat data...</p>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-white text-xl font-semibold">Riwayat Pembayaran</h1>
-        <p className="text-gray-500 text-sm mt-1">
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Riwayat Pembayaran</h1>
+        <p className="text-muted-foreground text-sm mt-1">
           Catatan pembayaran perpanjangan langganan tenant (dicatat manual saat superadmin memperpanjang).
         </p>
       </div>
 
-      {!loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          <div className="bg-gray-900 rounded-xl p-5 border border-gray-800">
-            <p className="text-gray-400 text-sm mb-1">Total Tercatat ({payments.length} transaksi)</p>
-            <p className="text-2xl font-bold text-green-400">{currency.format(totalAmount)}</p>
-          </div>
-          <div className="bg-gray-900 rounded-xl p-5 border border-gray-800">
-            <p className="text-gray-400 text-sm mb-1">Bulan Ini</p>
-            <p className="text-2xl font-bold text-blue-400">{currency.format(totalThisMonth)}</p>
-          </div>
-        </div>
-      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Tercatat
+            </CardTitle>
+            <Wallet className="size-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-500">{currency.format(totalAmount)}</div>
+            <p className="text-xs text-muted-foreground mt-1">{payments.length} transaksi</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Bulan Ini
+            </CardTitle>
+            <TrendingUp className="size-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-500">{currency.format(totalThisMonth)}</div>
+          </CardContent>
+        </Card>
+      </div>
 
-      {loading ? (
-        <p className="text-gray-500 text-sm">Memuat data...</p>
-      ) : payments.length === 0 ? (
-        <p className="text-gray-500 text-sm">Belum ada pembayaran tercatat.</p>
+      {payments.length === 0 ? (
+        <Card>
+          <CardContent className="py-8">
+            <p className="text-muted-foreground text-sm text-center">Belum ada pembayaran tercatat.</p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-800">
-                <th className="text-left text-gray-400 font-medium px-4 py-3">Tanggal</th>
-                <th className="text-left text-gray-400 font-medium px-4 py-3">Tenant</th>
-                <th className="text-left text-gray-400 font-medium px-4 py-3">Jumlah</th>
-                <th className="text-left text-gray-400 font-medium px-4 py-3">Metode</th>
-                <th className="text-left text-gray-400 font-medium px-4 py-3">Durasi</th>
-                <th className="text-left text-gray-400 font-medium px-4 py-3">Dicatat Oleh</th>
-                <th className="text-left text-gray-400 font-medium px-4 py-3">Catatan</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr key={p.id} className="border-b border-gray-800 last:border-0">
-                  <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{fmtDate(p.createdAt)}</td>
-                  <td className="px-4 py-3 text-white">{p.tenantNama}</td>
-                  <td className="px-4 py-3 text-green-400 font-medium whitespace-nowrap">{currency.format(p.amount || 0)}</td>
-                  <td className="px-4 py-3 text-gray-400">{PAYMENT_METHOD_LABEL[p.method] ?? p.method}</td>
-                  <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{p.days} hari</td>
-                  <td className="px-4 py-3 text-gray-400">{p.recordedByEmail}</td>
-                  <td className="px-4 py-3 text-gray-500">{p.note || '-'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Tenant</TableHead>
+                  <TableHead>Jumlah</TableHead>
+                  <TableHead>Metode</TableHead>
+                  <TableHead>Durasi</TableHead>
+                  <TableHead>Dicatat Oleh</TableHead>
+                  <TableHead>Catatan</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payments.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="text-muted-foreground">{fmtDate(p.createdAt)}</TableCell>
+                    <TableCell className="font-medium">{p.tenantNama}</TableCell>
+                    <TableCell className="text-green-500 font-medium">{currency.format(p.amount || 0)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {PAYMENT_METHOD_LABEL[p.method] ?? p.method}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{p.days} hari</TableCell>
+                    <TableCell className="text-muted-foreground">{p.recordedByEmail}</TableCell>
+                    <TableCell className="text-muted-foreground max-w-[200px] truncate">{p.note || '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

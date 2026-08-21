@@ -6,6 +6,17 @@ import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 import { logActivity } from '@/lib/audit-log';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CheckCircle, XCircle, FileText, AlertTriangle } from 'lucide-react';
 
 interface Plan {
   id: string;
@@ -30,8 +41,6 @@ interface Application {
   createdAt?: Timestamp;
 }
 
-// Normalisasi ringan supaya "0812..." dan "+62812..." dianggap nomor yang
-// sama saat dicek duplikat — bukan validasi penuh, cukup untuk sinyal triase.
 function normalizeWhatsapp(raw: string): string {
   let s = (raw || '').replace(/[\s-]/g, '');
   if (s.startsWith('+62')) s = `0${s.slice(3)}`;
@@ -45,10 +54,10 @@ const STATUS_LABEL: Record<Application['status'], string> = {
   rejected: 'Ditolak',
 };
 
-const STATUS_COLOR: Record<Application['status'], string> = {
-  pending: 'bg-yellow-900 text-yellow-300',
-  approved: 'bg-green-900 text-green-300',
-  rejected: 'bg-red-900 text-red-300',
+const STATUS_VARIANT: Record<Application['status'], 'default' | 'secondary' | 'destructive'> = {
+  pending: 'secondary',
+  approved: 'default',
+  rejected: 'destructive',
 };
 
 export default function ApplicationsPage() {
@@ -163,8 +172,6 @@ export default function ApplicationsPage() {
     }
   }
 
-  // Sinyal triase: tandai nomor WA yang dipakai >1 pendaftaran (typo/duplikat/spam),
-  // supaya superadmin bisa lebih waspada sebelum klik "Setujui" pada paket berbayar.
   const duplicateWhatsapp = useMemo(() => {
     const counts = new Map<string, number>();
     for (const a of applications) {
@@ -179,179 +186,235 @@ export default function ApplicationsPage() {
     .filter((a) => (filter === 'all' ? true : a.status === 'pending'))
     .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
 
+  const pendingCount = applications.filter((a) => a.status === 'pending').length;
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-white">Pendaftaran Tenant</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFilter('pending')}
-            className={`text-xs px-3 py-1.5 rounded-lg ${filter === 'pending' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400'}`}
-          >
-            Menunggu
-          </button>
-          <button
-            onClick={() => setFilter('all')}
-            className={`text-xs px-3 py-1.5 rounded-lg ${filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400'}`}
-          >
-            Semua
-          </button>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Pendaftaran Tenant</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Kelola pendaftaran RT/RW baru. Setujui atau tolak pendaftaran yang masuk.
+        </p>
       </div>
 
-      {loading && <p className="text-gray-400 text-sm">Memuat...</p>}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Menunggu</CardTitle>
+            <FileText className="size-4 text-yellow-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-500">{pendingCount}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Disetujui</CardTitle>
+            <CheckCircle className="size-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-500">
+              {applications.filter((a) => a.status === 'approved').length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Ditolak</CardTitle>
+            <XCircle className="size-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-500">
+              {applications.filter((a) => a.status === 'rejected').length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-      {!loading && visible.length === 0 && (
-        <p className="text-gray-500 text-sm">Tidak ada pendaftaran{filter === 'pending' ? ' yang menunggu' : ''}.</p>
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as 'pending' | 'all')}>
+        <TabsList>
+          <TabsTrigger value="pending">Menunggu</TabsTrigger>
+          <TabsTrigger value="all">Semua</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-32">
+          <p className="text-muted-foreground text-sm">Memuat...</p>
+        </div>
+      ) : visible.length === 0 ? (
+        <Card>
+          <CardContent className="py-8">
+            <p className="text-muted-foreground text-sm text-center">
+              Tidak ada pendaftaran{filter === 'pending' ? ' yang menunggu' : ''}.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {visible.map((a) => (
+            <Card key={a.id}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="font-medium">{a.namaUsaha}</p>
+                    <p className="text-muted-foreground text-sm">{a.namaPemilik} · {a.email} · {a.whatsapp}</p>
+                    <p className="text-muted-foreground text-xs">{a.alamat}</p>
+                    {a.requestedPlan && (
+                      <p className="text-blue-500 text-xs">
+                        Paket diminta: {plans.find((p) => p.id === a.requestedPlan)?.nama ?? a.requestedPlan}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5">
+                    <Badge variant={STATUS_VARIANT[a.status]}>
+                      {STATUS_LABEL[a.status]}
+                    </Badge>
+                    {a.autoApproved && (
+                      <Badge variant="secondary" className="bg-blue-500/10 text-blue-500">
+                        Auto-approved (trial)
+                      </Badge>
+                    )}
+                    {(duplicateWhatsapp.get(normalizeWhatsapp(a.whatsapp)) ?? 0) > 1 && (
+                      <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-500">
+                        <AlertTriangle className="size-3" />
+                        Nomor WA dipakai berulang
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {a.status === 'approved' && (
+                  <p className="text-green-500 text-xs mt-2 font-mono">Kode aktivasi: {a.activationCode}</p>
+                )}
+                {a.status === 'rejected' && a.rejectionReason && (
+                  <p className="text-red-500 text-xs mt-2">Alasan: {a.rejectionReason}</p>
+                )}
+
+                {a.status === 'pending' && (
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      onClick={() => openApprove(a)}
+                    >
+                      <CheckCircle className="size-3" />
+                      Setujui
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => openReject(a)}
+                    >
+                      <XCircle className="size-3" />
+                      Tolak
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
-      <div className="space-y-3">
-        {visible.map((a) => (
-          <div key={a.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-white font-medium">{a.namaUsaha}</p>
-                <p className="text-gray-400 text-sm">{a.namaPemilik} · {a.email} · {a.whatsapp}</p>
-                <p className="text-gray-500 text-xs mt-1">{a.alamat}</p>
-                {a.requestedPlan && (
-                  <p className="text-blue-400 text-xs mt-1">
-                    Paket diminta: {plans.find((p) => p.id === a.requestedPlan)?.nama ?? a.requestedPlan}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${STATUS_COLOR[a.status]}`}>
-                  {STATUS_LABEL[a.status]}
-                </span>
-                {a.autoApproved && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-blue-900 text-blue-300 whitespace-nowrap">
-                    Auto-approved (trial)
-                  </span>
-                )}
-                {(duplicateWhatsapp.get(normalizeWhatsapp(a.whatsapp)) ?? 0) > 1 && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-yellow-900 text-yellow-300 whitespace-nowrap">
-                    Nomor WA dipakai berulang
-                  </span>
-                )}
-              </div>
-            </div>
+      {/* Approve Dialog */}
+      <Dialog open={!!approveTarget} onOpenChange={(open) => !open && setApproveTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Setujui {approveTarget?.namaUsaha}</DialogTitle>
+            <DialogDescription>
+              Pilih grade dan durasi langganan untuk tenant ini.
+            </DialogDescription>
+          </DialogHeader>
 
-            {a.status === 'approved' && (
-              <p className="text-green-400 text-xs mt-2 font-mono">Kode aktivasi: {a.activationCode}</p>
-            )}
-            {a.status === 'rejected' && a.rejectionReason && (
-              <p className="text-red-400 text-xs mt-2">Alasan: {a.rejectionReason}</p>
-            )}
-
-            {a.status === 'pending' && (
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => openApprove(a)}
-                  className="bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg px-3 py-1.5"
-                >
-                  Setujui
-                </button>
-                <button
-                  onClick={() => openReject(a)}
-                  className="bg-red-900 hover:bg-red-800 text-red-200 text-xs font-medium rounded-lg px-3 py-1.5"
-                >
-                  Tolak
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {approveTarget && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 w-full max-w-sm space-y-3">
-            <h2 className="text-white font-bold">Setujui {approveTarget.namaUsaha}</h2>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">Grade/Paket</label>
-              <select
-                value={approveGradeId}
-                onChange={(e) => setApproveGradeId(e.target.value)}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none"
-              >
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Grade/Paket</Label>
+              <div className="flex flex-wrap gap-2">
                 {plans.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nama}</option>
+                  <Button
+                    key={p.id}
+                    variant={approveGradeId === p.id ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setApproveGradeId(p.id)}
+                  >
+                    {p.nama}
+                  </Button>
                 ))}
-              </select>
+              </div>
             </div>
 
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">Durasi Awal (hari)</label>
-              <input
+            <div className="space-y-2">
+              <Label>Durasi Awal (hari)</Label>
+              <Input
                 type="number"
                 value={approveDurationDays}
                 onChange={(e) => setApproveDurationDays(Number(e.target.value))}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none"
                 min={1}
               />
             </div>
 
             {approveError && (
-              <p className="text-red-400 text-sm bg-red-950 rounded-lg px-3 py-2">{approveError}</p>
+              <div className="bg-destructive/10 text-destructive text-sm rounded-lg px-3 py-2">
+                {approveError}
+              </div>
             )}
-
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={() => setApproveTarget(null)}
-                className="flex-1 bg-gray-800 text-white text-sm rounded-lg py-2"
-              >
-                Batal
-              </button>
-              <button
-                onClick={confirmApprove}
-                disabled={approveSaving || !approveGradeId}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm rounded-lg py-2"
-              >
-                {approveSaving ? 'Memproses...' : 'Setujui'}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
 
-      {rejectTarget && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 w-full max-w-sm space-y-3">
-            <h2 className="text-white font-bold">Tolak {rejectTarget.namaUsaha}</h2>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproveTarget(null)}>
+              Batal
+            </Button>
+            <Button
+              onClick={confirmApprove}
+              disabled={approveSaving || !approveGradeId}
+            >
+              {approveSaving ? 'Memproses...' : 'Setujui'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">Alasan (opsional)</label>
-              <textarea
+      {/* Reject Dialog */}
+      <Dialog open={!!rejectTarget} onOpenChange={(open) => !open && setRejectTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tolak {rejectTarget?.namaUsaha}</DialogTitle>
+            <DialogDescription>
+              Berikan alasan penolakan (opsional).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Alasan (opsional)</Label>
+              <Textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none"
                 rows={3}
               />
             </div>
 
             {rejectError && (
-              <p className="text-red-400 text-sm bg-red-950 rounded-lg px-3 py-2">{rejectError}</p>
+              <div className="bg-destructive/10 text-destructive text-sm rounded-lg px-3 py-2">
+                {rejectError}
+              </div>
             )}
-
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={() => setRejectTarget(null)}
-                className="flex-1 bg-gray-800 text-white text-sm rounded-lg py-2"
-              >
-                Batal
-              </button>
-              <button
-                onClick={confirmReject}
-                disabled={rejectSaving}
-                className="flex-1 bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white text-sm rounded-lg py-2"
-              >
-                {rejectSaving ? 'Memproses...' : 'Tolak'}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectTarget(null)}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmReject}
+              disabled={rejectSaving}
+            >
+              {rejectSaving ? 'Memproses...' : 'Tolak'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

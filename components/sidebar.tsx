@@ -1,131 +1,133 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { isDevModeEnabled } from '@/lib/dev-mode';
+import {
+  LayoutDashboard,
+  Building2,
+  FileText,
+  CreditCard,
+  Bike,
+  DollarSign,
+  History,
+  Smartphone,
+  LogOut,
+  Menu,
+  Shield,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 const navItems = [
-  { href: '/dashboard', label: 'Ringkasan', icon: '⊞' },
-  { href: '/dashboard/tenants', label: 'Kelola RT/RW', icon: '🏘' },
-  { href: '/dashboard/applications', label: 'Pendaftaran', icon: '📝' },
-  { href: '/dashboard/plans', label: 'Paket/Grade', icon: '💳' },
-  { href: '/dashboard/jasa', label: 'Jasa ZasaQu', icon: '🛵' },
-  { href: '/dashboard/payments', label: 'Riwayat Pembayaran', icon: '💰' },
-  { href: '/dashboard/activity', label: 'Riwayat Aktivitas', icon: '📜' },
-  { href: '/dashboard/app-version', label: 'Versi Aplikasi', icon: '📱' },
+  { href: '/dashboard', label: 'Ringkasan', icon: LayoutDashboard },
+  { href: '/dashboard/tenants', label: 'Kelola RT/RW', icon: Building2 },
+  { href: '/dashboard/applications', label: 'Pendaftaran', icon: FileText },
+  { href: '/dashboard/plans', label: 'Paket/Grade', icon: CreditCard },
+  { href: '/dashboard/jasa', label: 'Jasa ZasaQu', icon: Bike },
+  { href: '/dashboard/payments', label: 'Pembayaran', icon: DollarSign },
+  { href: '/dashboard/activity', label: 'Log Aktivitas', icon: History },
+  { href: '/dashboard/app-version', label: 'Versi App', icon: Smartphone },
 ];
 
-function SidebarContent({ devMode, onNavigate, onLogout }: {
-  devMode: boolean;
-  onNavigate?: () => void;
-  onLogout: () => void;
-}) {
+function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <>
-      <div className="p-5 border-b border-gray-800">
-        <p className="text-white font-bold text-lg">QweenBill</p>
-        <p className="text-gray-500 text-xs">Superadmin</p>
-        {devMode && (
-          <p className="text-green-400 text-xs font-medium mt-1">Dev Mode AKTIF</p>
-        )}
-      </div>
-
-      <nav className="flex-1 p-3 space-y-1">
-        {navItems.map((item) => (
+    <nav className="flex flex-col gap-1 p-2">
+      {navItems.map((item) => {
+        const isActive = pathname === item.href;
+        return (
           <Link
             key={item.href}
             href={item.href}
             onClick={onNavigate}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-              pathname === item.href
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              isActive
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
             }`}
           >
-            <span>{item.icon}</span>
+            <item.icon className="h-4 w-4 shrink-0" />
             {item.label}
           </Link>
-        ))}
-      </nav>
-
-      <div className="p-3 border-t border-gray-800">
-        <button
-          onClick={onLogout}
-          className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-        >
-          <span>→</span> Keluar
-        </button>
-      </div>
-    </>
+        );
+      })}
+    </nav>
   );
 }
 
 export default function Sidebar() {
   const router = useRouter();
-  const pathname = usePathname();
   const [devMode, setDevMode] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     isDevModeEnabled().then(setDevMode);
   }, []);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
 
   async function handleLogout() {
     await signOut(auth);
     router.push('/login');
   }
 
+  const sidebarContent = (
+    <>
+      <div className="flex items-center gap-2 px-4 py-4">
+        <Shield className="h-5 w-5 text-primary" />
+        <div>
+          <p className="text-sm font-semibold leading-none">QweenBill</p>
+          <p className="text-xs text-muted-foreground mt-1">Superadmin</p>
+        </div>
+        {devMode && (
+          <Badge variant="outline" className="ml-auto border-green-500/50 text-green-400 text-[10px]">
+            DEV
+          </Badge>
+        )}
+      </div>
+      <Separator />
+      <NavList onNavigate={() => setOpen(false)} />
+      <div className="mt-auto p-2">
+        <Separator className="mb-2" />
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 text-muted-foreground"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4" />
+          Keluar
+        </Button>
+      </div>
+    </>
+  );
+
   return (
     <>
-      {/* Top bar mobile */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-gray-900 border-b border-gray-800 sticky top-0 z-30">
-        <div>
-          <p className="text-white font-bold text-base leading-none">QweenBill</p>
-          <p className="text-gray-500 text-xs mt-0.5">Superadmin</p>
+      {/* Mobile topbar */}
+      <div className="sticky top-0 z-40 flex items-center justify-between border-b bg-background px-4 py-3 md:hidden">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4" />
+          <span className="text-sm font-semibold">QweenBill</span>
         </div>
-        <button
-          onClick={() => setMobileOpen(true)}
-          aria-label="Buka menu"
-          className="text-white text-2xl leading-none p-1"
-        >
-          ☰
-        </button>
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8" />}>
+            <Menu className="h-4 w-4" />
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 p-0">
+            <div className="flex h-full flex-col">{sidebarContent}</div>
+          </SheetContent>
+        </Sheet>
       </div>
 
-      {/* Sidebar tetap, desktop */}
-      <aside className="hidden md:flex w-56 shrink-0 min-h-screen bg-gray-900 flex-col border-r border-gray-800">
-        <SidebarContent devMode={devMode} onLogout={handleLogout} />
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex w-56 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
+        {sidebarContent}
       </aside>
-
-      {/* Drawer mobile */}
-      {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-40">
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside className="absolute left-0 top-0 h-full w-64 max-w-[80vw] bg-gray-900 flex flex-col border-r border-gray-800">
-            <button
-              onClick={() => setMobileOpen(false)}
-              aria-label="Tutup menu"
-              className="self-end text-gray-400 text-xl p-3"
-            >
-              ✕
-            </button>
-            <SidebarContent devMode={devMode} onNavigate={() => setMobileOpen(false)} onLogout={handleLogout} />
-          </aside>
-        </div>
-      )}
     </>
   );
 }

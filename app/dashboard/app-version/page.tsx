@@ -3,6 +3,12 @@
 import { useEffect, useState } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Save, CheckCircle, Smartphone } from 'lucide-react';
 
 interface AppConfig {
   minBuildNumber: string;
@@ -69,66 +75,91 @@ export default function AppVersionPage() {
     }
   }
 
-  if (loading) return <p className="text-gray-400 text-sm">Memuat...</p>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground text-sm">Memuat...</p>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h1 className="text-xl font-bold text-white mb-1">Versi Aplikasi</h1>
-      <p className="text-gray-500 text-sm mb-6">
-        Paksa pengguna dengan app usang untuk update sebelum bisa lanjut pakai app. Cek dijalankan
-        di splash screen, sebelum login — kosongkan "Build Minimal" untuk menonaktifkan paksaan.
-      </p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Versi Aplikasi</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Paksa pengguna dengan app usang untuk update sebelum bisa lanjut pakai app. Cek dijalankan
+          di splash screen, sebelum login — kosongkan &quot;Build Minimal&quot; untuk menonaktifkan paksaan.
+        </p>
+      </div>
 
       <div className="space-y-4">
         {APPS.map((app) => {
           const cfg = configs[app.id] ?? emptyConfig;
           return (
-            <div key={app.id} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-              <h2 className="text-white font-semibold mb-4">{app.label}</h2>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm text-gray-400 mb-1 block">
-                    Build Minimal (versionCode, kosongkan = nonaktif)
-                  </label>
-                  <input
-                    type="number"
-                    value={cfg.minBuildNumber}
-                    onChange={(e) => update(app.id, 'minBuildNumber', e.target.value)}
-                    className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Contoh: 2004"
-                  />
+            <Card key={app.id}>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Smartphone className="size-4 text-muted-foreground" />
+                  <CardTitle className="text-base">{app.label}</CardTitle>
                 </div>
-                <div>
-                  <label className="text-sm text-gray-400 mb-1 block">Link Download</label>
-                  <input
+                <CardDescription>{app.id}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">
+                      Build Minimal (versionCode, kosongkan = nonaktif)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={cfg.minBuildNumber}
+                      onChange={(e) => update(app.id, 'minBuildNumber', e.target.value)}
+                      placeholder="Contoh: 2004"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Link Download</Label>
+                    <Input
+                      type="text"
+                      value={cfg.updateUrl}
+                      onChange={(e) => update(app.id, 'updateUrl', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Pesan (opsional)</Label>
+                  <Input
                     type="text"
-                    value={cfg.updateUrl}
-                    onChange={(e) => update(app.id, 'updateUrl', e.target.value)}
-                    className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                    value={cfg.pesan}
+                    onChange={(e) => update(app.id, 'pesan', e.target.value)}
+                    placeholder="Versi aplikasi ini sudah usang. Silakan update ke versi terbaru untuk melanjutkan."
                   />
                 </div>
-              </div>
-              <div className="mt-4">
-                <label className="text-sm text-gray-400 mb-1 block">Pesan (opsional)</label>
-                <input
-                  type="text"
-                  value={cfg.pesan}
-                  onChange={(e) => update(app.id, 'pesan', e.target.value)}
-                  className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Versi aplikasi ini sudah usang. Silakan update ke versi terbaru untuk melanjutkan."
-                />
-              </div>
-              <div className="flex items-center gap-3 mt-4">
-                <button
-                  onClick={() => handleSave(app.id)}
-                  disabled={savingId === app.id}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2"
-                >
-                  {savingId === app.id ? 'Menyimpan...' : 'Simpan'}
-                </button>
-                {savedId === app.id && <span className="text-green-400 text-sm">Tersimpan</span>}
-              </div>
-            </div>
+                <Separator />
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={() => handleSave(app.id)}
+                    disabled={savingId === app.id}
+                  >
+                    {savingId === app.id ? (
+                      'Menyimpan...'
+                    ) : (
+                      <>
+                        <Save className="size-4" />
+                        Simpan
+                      </>
+                    )}
+                  </Button>
+                  {savedId === app.id && (
+                    <span className="flex items-center gap-1.5 text-sm text-green-500">
+                      <CheckCircle className="size-4" />
+                      Tersimpan
+                    </span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           );
         })}
       </div>

@@ -7,6 +7,25 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '@/lib/firebase';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import {
+  Mail,
+  Lock,
+  User,
+  Phone,
+  MapPin,
+  ArrowRight,
+  Loader2,
+  Shield,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 function translateError(msg: string): string {
   if (msg.includes('email-already-in-use')) return 'Email ini sudah terdaftar. Coba login.';
@@ -39,12 +58,11 @@ function RegisterForm() {
     password: '',
     confirmPassword: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Trial: auto-approve tanpa review admin, tapi digerbangi verifikasi OTP
-  // WhatsApp (lihat autoProvisionTrial di Cloud Functions). Paket berbayar
-  // tetap masuk antrian manual seperti sebelumnya.
   const [daftarType, setDaftarType] = useState<'trial' | 'berbayar'>('berbayar');
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
@@ -55,7 +73,6 @@ function RegisterForm() {
 
   function update(field: keyof typeof form, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
-    // Nomor WA berubah setelah verifikasi — OTP lama tidak lagi berlaku untuk nomor baru.
     if (field === 'whatsapp' && otpVerified) {
       setOtpVerified(false);
       setOtpSent(false);
@@ -134,8 +151,6 @@ function RegisterForm() {
       });
 
       if (daftarType === 'trial') {
-        // Auto-approve trial — server-side (Cloud Function) yang menulis
-        // status jadi 'approved' + kode aktivasi, lihat autoProvisionTrial.
         const autoProvisionTrial = httpsCallable(functions, 'autoProvisionTrial');
         await autoProvisionTrial({
           uid: cred.user.uid,
@@ -158,209 +173,323 @@ function RegisterForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white">QweenBill</h1>
-          <p className="text-gray-400 text-sm mt-1">Daftar Jadi Mitra Operator RT/RW Net</p>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="text-center space-y-2">
+          <div className="mx-auto w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Shield className="h-6 w-6 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">QweenBill</h1>
+          <p className="text-sm text-muted-foreground">Daftar Jadi Mitra Operator RT/RW Net</p>
           {requestedPlan && (
-            <p className="text-blue-400 text-xs mt-2 bg-blue-950 inline-block rounded-full px-3 py-1">
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
               Paket dipilih: {requestedPlan}
-            </p>
+            </Badge>
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-2 bg-gray-800 rounded-lg p-1">
-            <button
-              type="button"
-              onClick={() => setDaftarType('trial')}
-              className={`text-sm font-medium rounded-md py-2 transition-colors ${
-                daftarType === 'trial' ? 'bg-blue-600 text-white' : 'text-gray-400'
-              }`}
-            >
-              Trial Gratis 7 Hari
-            </button>
-            <button
-              type="button"
-              onClick={() => setDaftarType('berbayar')}
-              className={`text-sm font-medium rounded-md py-2 transition-colors ${
-                daftarType === 'berbayar' ? 'bg-blue-600 text-white' : 'text-gray-400'
-              }`}
-            >
-              Paket Berbayar
-            </button>
-          </div>
-          {daftarType === 'trial' ? (
-            <p className="text-xs text-gray-500 -mt-2">
-              Langsung aktif setelah verifikasi nomor WhatsApp, tanpa perlu menunggu admin.
-            </p>
-          ) : (
-            <p className="text-xs text-gray-500 -mt-2">
-              Pendaftaran akan ditinjau admin, biasanya dalam 1x24 jam.
-            </p>
-          )}
-
-          <div>
-            <label className="text-sm text-gray-400 mb-1 block">Nama Usaha / ISP</label>
-            <input
-              type="text"
-              value={form.namaUsaha}
-              onChange={(e) => update('namaUsaha', e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Nama RT/RW Net Anda"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-400 mb-1 block">Nama Pemilik</label>
-            <input
-              type="text"
-              value={form.namaPemilik}
-              onChange={(e) => update('namaPemilik', e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Nama lengkap Anda"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-400 mb-1 block">Email</label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => update('email', e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="email@anda.com"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-400 mb-1 block">Nomor WhatsApp</label>
-            <div className="flex gap-2">
-              <input
-                type="tel"
-                value={form.whatsapp}
-                onChange={(e) => update('whatsapp', e.target.value)}
-                className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="08xxxxxxxxxx"
-                required
-              />
-              {daftarType === 'trial' && !otpVerified && (
+        <Card className="border-border/50 bg-card shadow-lg">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-lg">Buat Akun Baru</CardTitle>
+            <CardDescription>Isi data diri Anda untuk mendaftar</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-1 p-1 bg-muted rounded-lg">
                 <button
                   type="button"
-                  onClick={handleSendOtp}
-                  disabled={otpSending || !form.whatsapp.trim()}
-                  className="shrink-0 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white text-xs font-medium rounded-lg px-3"
+                  onClick={() => setDaftarType('trial')}
+                  className={cn(
+                    'text-sm font-medium rounded-md py-2 transition-colors',
+                    daftarType === 'trial'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
                 >
-                  {otpSending ? 'Mengirim...' : otpSent ? 'Kirim Ulang' : 'Kirim OTP'}
+                  Trial Gratis 7 Hari
                 </button>
-              )}
-            </div>
-          </div>
-
-          {daftarType === 'trial' && otpSent && !otpVerified && (
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">Kode OTP (dikirim ke WhatsApp Anda)</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value)}
-                  className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 tracking-widest"
-                  placeholder="123456"
-                  maxLength={6}
-                />
                 <button
                   type="button"
-                  onClick={handleVerifyOtp}
-                  disabled={otpVerifying || !otpCode.trim()}
-                  className="shrink-0 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg px-3"
+                  onClick={() => setDaftarType('berbayar')}
+                  className={cn(
+                    'text-sm font-medium rounded-md py-2 transition-colors',
+                    daftarType === 'berbayar'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
                 >
-                  {otpVerifying ? 'Memeriksa...' : 'Verifikasi'}
+                  Paket Berbayar
                 </button>
               </div>
-            </div>
-          )}
+              {daftarType === 'trial' ? (
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Langsung aktif setelah verifikasi nomor WhatsApp, tanpa perlu menunggu admin.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Pendaftaran akan ditinjau admin, biasanya dalam 1x24 jam.
+                </p>
+              )}
 
-          {daftarType === 'trial' && otpVerified && (
-            <p className="text-green-400 text-xs bg-green-950 rounded-lg px-3 py-2">
-              Nomor WhatsApp terverifikasi.
-            </p>
-          )}
+              <div className="space-y-2">
+                <Label htmlFor="namaUsaha" className="text-sm font-medium">
+                  Nama Usaha / ISP
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="namaUsaha"
+                    type="text"
+                    value={form.namaUsaha}
+                    onChange={(e) => update('namaUsaha', e.target.value)}
+                    className="pl-9"
+                    placeholder="Nama RT/RW Net Anda"
+                    required
+                  />
+                </div>
+              </div>
 
-          {otpError && (
-            <p className="text-red-400 text-sm bg-red-950 rounded-lg px-3 py-2">{otpError}</p>
-          )}
+              <div className="space-y-2">
+                <Label htmlFor="namaPemilik" className="text-sm font-medium">
+                  Nama Pemilik
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="namaPemilik"
+                    type="text"
+                    value={form.namaPemilik}
+                    onChange={(e) => update('namaPemilik', e.target.value)}
+                    className="pl-9"
+                    placeholder="Nama lengkap Anda"
+                    required
+                  />
+                </div>
+              </div>
 
-          <div>
-            <label className="text-sm text-gray-400 mb-1 block">Alamat</label>
-            <input
-              type="text"
-              value={form.alamat}
-              onChange={(e) => update('alamat', e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Alamat usaha"
-              required
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => update('email', e.target.value)}
+                    className="pl-9"
+                    placeholder="email@anda.com"
+                    required
+                  />
+                </div>
+              </div>
 
-          <div>
-            <label className="text-sm text-gray-400 mb-1 block">Password</label>
-            <input
-              type="password"
-              value={form.password}
-              onChange={(e) => update('password', e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Minimal 6 karakter"
-              required
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp" className="text-sm font-medium">
+                  Nomor WhatsApp
+                </Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="whatsapp"
+                      type="tel"
+                      value={form.whatsapp}
+                      onChange={(e) => update('whatsapp', e.target.value)}
+                      className="pl-9"
+                      placeholder="08xxxxxxxxxx"
+                      required
+                    />
+                  </div>
+                  {daftarType === 'trial' && !otpVerified && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="default"
+                      onClick={handleSendOtp}
+                      disabled={otpSending || !form.whatsapp.trim()}
+                      className="shrink-0"
+                    >
+                      {otpSending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : otpSent ? (
+                        'Kirim Ulang'
+                      ) : (
+                        'Kirim OTP'
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
 
-          <div>
-            <label className="text-sm text-gray-400 mb-1 block">Konfirmasi Password</label>
-            <input
-              type="password"
-              value={form.confirmPassword}
-              onChange={(e) => update('confirmPassword', e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="••••••••"
-              required
-            />
-          </div>
+              {daftarType === 'trial' && otpSent && !otpVerified && (
+                <div className="space-y-2">
+                  <Label htmlFor="otp" className="text-sm font-medium">
+                    Kode OTP (dikirim ke WhatsApp Anda)
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="otp"
+                      type="text"
+                      inputMode="numeric"
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      className="tracking-widest font-mono"
+                      placeholder="123456"
+                      maxLength={6}
+                    />
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="default"
+                      onClick={handleVerifyOtp}
+                      disabled={otpVerifying || !otpCode.trim()}
+                      className="shrink-0"
+                    >
+                      {otpVerifying ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        'Verifikasi'
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
 
-          {error && (
-            <p className="text-red-400 text-sm bg-red-950 rounded-lg px-3 py-2">{error}</p>
-          )}
+              {daftarType === 'trial' && otpVerified && (
+                <div className="rounded-md bg-green-500/10 border border-green-500/20 px-3 py-2">
+                  <p className="text-sm text-green-500">Nomor WhatsApp terverifikasi.</p>
+                </div>
+              )}
 
-          <button
-            type="submit"
-            disabled={loading || (daftarType === 'trial' && !otpVerified)}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-lg py-2.5 text-sm transition-colors"
-          >
-            {loading ? 'Mendaftar...' : 'Daftar'}
-          </button>
+              {otpError && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
+                  <p className="text-sm text-destructive">{otpError}</p>
+                </div>
+              )}
 
-          <p className="text-center text-gray-500 text-xs">
-            Dengan mendaftar, Anda menyetujui{' '}
-            <a
-              href="https://qweenbill-privacy.pages.dev/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300"
-            >
-              Kebijakan Privasi
-            </a>{' '}
-            kami.
-          </p>
-        </form>
+              <div className="space-y-2">
+                <Label htmlFor="alamat" className="text-sm font-medium">
+                  Alamat
+                </Label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="alamat"
+                    type="text"
+                    value={form.alamat}
+                    onChange={(e) => update('alamat', e.target.value)}
+                    className="pl-9"
+                    placeholder="Alamat usaha"
+                    required
+                  />
+                </div>
+              </div>
 
-        <p className="text-center text-gray-500 text-sm mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={(e) => update('password', e.target.value)}
+                    className="pl-9 pr-9"
+                    placeholder="Minimal 6 karakter"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-sm font-medium">
+                  Konfirmasi Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={form.confirmPassword}
+                    onChange={(e) => update('confirmPassword', e.target.value)}
+                    className="pl-9 pr-9"
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
+                  <p className="text-sm text-destructive">{error}</p>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                disabled={loading || (daftarType === 'trial' && !otpVerified)}
+                className="w-full"
+                size="lg"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Mendaftar...
+                  </>
+                ) : (
+                  <>
+                    Daftar
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+
+              <p className="text-center text-xs text-muted-foreground">
+                Dengan mendaftar, Anda menyetujui{' '}
+                <a
+                  href="https://qweenbill-privacy.pages.dev/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:text-primary/80 underline underline-offset-4"
+                >
+                  Kebijakan Privasi
+                </a>{' '}
+                kami.
+              </p>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Separator className="bg-border/50" />
+
+        <p className="text-center text-sm text-muted-foreground">
           Sudah punya akun?{' '}
-          <Link href="/tenant-login" className="text-blue-400 hover:text-blue-300">
+          <Link
+            href="/tenant-login"
+            className="font-medium text-primary hover:text-primary/80 underline underline-offset-4"
+          >
             Masuk di sini
           </Link>
         </p>

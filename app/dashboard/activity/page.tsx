@@ -6,6 +6,10 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { ActivityAction } from '@/lib/audit-log';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { History } from 'lucide-react';
 
 interface ActivityLog {
   id: string;
@@ -33,19 +37,19 @@ const ACTION_LABEL: Record<ActivityAction, string> = {
   'application.reject': 'Tolak Pendaftaran',
 };
 
-const ACTION_COLOR: Record<ActivityAction, string> = {
-  'tenant.create': 'bg-blue-900 text-blue-300',
-  'tenant.activate': 'bg-green-900 text-green-300',
-  'tenant.suspend': 'bg-red-900 text-red-300',
-  'tenant.renew': 'bg-cyan-900 text-cyan-300',
-  'tenant.grade_change': 'bg-purple-900 text-purple-300',
-  'tenant.activation_code_edit': 'bg-yellow-900 text-yellow-300',
-  'tenant.delete': 'bg-red-950 text-red-400',
-  'tenant.nettopo_admin_reset': 'bg-indigo-900 text-indigo-300',
-  'tenant.nettopo_teknisi_reset': 'bg-indigo-900 text-indigo-300',
-  'tenant.admin_pin_reset': 'bg-orange-900 text-orange-300',
-  'application.approve': 'bg-green-900 text-green-300',
-  'application.reject': 'bg-red-900 text-red-300',
+const ACTION_VARIANT: Record<ActivityAction, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  'tenant.create': 'default',
+  'tenant.activate': 'secondary',
+  'tenant.suspend': 'destructive',
+  'tenant.renew': 'default',
+  'tenant.grade_change': 'outline',
+  'tenant.activation_code_edit': 'outline',
+  'tenant.delete': 'destructive',
+  'tenant.nettopo_admin_reset': 'outline',
+  'tenant.nettopo_teknisi_reset': 'outline',
+  'tenant.admin_pin_reset': 'outline',
+  'application.approve': 'secondary',
+  'application.reject': 'destructive',
 };
 
 function describeDetail(log: ActivityLog): string {
@@ -101,48 +105,96 @@ export default function ActivityPage() {
     });
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground text-sm">Memuat data...</p>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-white text-xl font-semibold">Riwayat Aktivitas</h1>
-        <p className="text-gray-500 text-sm mt-1">
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Riwayat Aktivitas</h1>
+        <p className="text-muted-foreground text-sm mt-1">
           100 aksi superadmin terbaru terhadap tenant (suspend, hapus, ubah grade, dst). Log ini tidak bisa diubah/dihapus.
         </p>
       </div>
 
-      {loading ? (
-        <p className="text-gray-500 text-sm">Memuat data...</p>
-      ) : logs.length === 0 ? (
-        <p className="text-gray-500 text-sm">Belum ada aktivitas tercatat.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Log</CardTitle>
+            <History className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{logs.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Aksi Hari Ini</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {logs.filter((l) => {
+                const d = l.createdAt?.toDate();
+                const now = new Date();
+                return d && d.toDateString() === now.toDateString();
+              }).length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Tenant Unik</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {new Set(logs.map((l) => l.tenantId)).size}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {logs.length === 0 ? (
+        <Card>
+          <CardContent className="py-8">
+            <p className="text-muted-foreground text-sm text-center">Belum ada aktivitas tercatat.</p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-800">
-                <th className="text-left text-gray-400 font-medium px-4 py-3">Waktu</th>
-                <th className="text-left text-gray-400 font-medium px-4 py-3">Admin</th>
-                <th className="text-left text-gray-400 font-medium px-4 py-3">Aksi</th>
-                <th className="text-left text-gray-400 font-medium px-4 py-3">Tenant</th>
-                <th className="text-left text-gray-400 font-medium px-4 py-3">Detail</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((log) => (
-                <tr key={log.id} className="border-b border-gray-800 last:border-0">
-                  <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{fmtDateTime(log.createdAt)}</td>
-                  <td className="px-4 py-3 text-gray-400">{log.actorEmail || log.actorUid}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ${ACTION_COLOR[log.action] ?? 'bg-gray-800 text-gray-400'}`}>
-                      {ACTION_LABEL[log.action] ?? log.action}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-white">{log.tenantNama}</td>
-                  <td className="px-4 py-3 text-gray-400">{describeDetail(log)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Waktu</TableHead>
+                  <TableHead>Admin</TableHead>
+                  <TableHead>Aksi</TableHead>
+                  <TableHead>Tenant</TableHead>
+                  <TableHead>Detail</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="text-muted-foreground">{fmtDateTime(log.createdAt)}</TableCell>
+                    <TableCell className="text-muted-foreground">{log.actorEmail || log.actorUid}</TableCell>
+                    <TableCell>
+                      <Badge variant={ACTION_VARIANT[log.action] ?? 'outline'}>
+                        {ACTION_LABEL[log.action] ?? log.action}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{log.tenantNama}</TableCell>
+                    <TableCell className="text-muted-foreground max-w-[300px] truncate">{describeDetail(log)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import Sidebar from '@/components/sidebar';
+import { Loader2 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isSuperAdmin, loading } = useAuth();
@@ -17,8 +18,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <p className="text-gray-400 text-sm">Memuat...</p>
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -26,9 +27,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!user || !isSuperAdmin) return null;
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-950">
+    <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      <main className="flex-1 min-w-0 p-4 md:p-6 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto">
+        <div className="p-4 md:p-6 lg:p-8">{children}</div>
+      </main>
     </div>
   );
 }

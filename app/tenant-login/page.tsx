@@ -6,6 +6,12 @@ import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
+import { Mail, Lock, Loader2, CheckCircle, XCircle, Clock, Copy } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface Application {
   namaUsaha: string;
@@ -16,16 +22,25 @@ interface Application {
   rejectionReason?: string;
 }
 
-const STATUS_LABEL: Record<Application['status'], string> = {
-  pending: 'Menunggu Persetujuan',
-  approved: 'Disetujui',
-  rejected: 'Ditolak',
-};
-
-const STATUS_COLOR: Record<Application['status'], string> = {
-  pending: 'bg-yellow-900 text-yellow-300',
-  approved: 'bg-green-900 text-green-300',
-  rejected: 'bg-red-900 text-red-300',
+const STATUS_CONFIG: Record<
+  Application['status'],
+  { label: string; icon: React.ReactNode; badgeClass: string }
+> = {
+  pending: {
+    label: 'Menunggu Persetujuan',
+    icon: <Clock className="size-4" />,
+    badgeClass: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
+  },
+  approved: {
+    label: 'Disetujui',
+    icon: <CheckCircle className="size-4" />,
+    badgeClass: 'bg-green-500/15 text-green-400 border-green-500/30',
+  },
+  rejected: {
+    label: 'Ditolak',
+    icon: <XCircle className="size-4" />,
+    badgeClass: 'bg-red-500/15 text-red-400 border-red-500/30',
+  },
 };
 
 function translateError(msg: string): string {
@@ -95,71 +110,92 @@ function TenantLoginInner() {
     router.push('/tenant-login');
   }
 
+  function handleCopyCode() {
+    if (application?.activationCode) {
+      navigator.clipboard.writeText(application.activationCode);
+    }
+  }
+
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <p className="text-gray-400 text-sm">Memuat...</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2 text-muted-foreground text-sm">
+          <Loader2 className="size-4 animate-spin" />
+          Memuat...
+        </div>
       </div>
     );
   }
 
-  // ── Belum login: tampilkan form login ──────────────────────────────
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white">QweenBill</h1>
-            <p className="text-gray-400 text-sm mt-1">Login Mitra Operator</p>
+            <h1 className="text-2xl font-bold">QweenBill</h1>
+            <p className="text-muted-foreground text-sm mt-1">Login Mitra Operator</p>
           </div>
 
-          {justRegistered && (
-            <p className="text-green-400 text-sm bg-green-950 rounded-lg px-3 py-2 mb-4">
-              Pendaftaran berhasil dikirim. Silakan login untuk memantau status persetujuan.
-            </p>
-          )}
+          <Card>
+            <CardContent className="pt-6">
+              {justRegistered && (
+                <div className="flex items-start gap-2 text-sm bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg px-3 py-2.5 mb-4">
+                  <CheckCircle className="size-4 mt-0.5 shrink-0" />
+                  Pendaftaran berhasil dikirim. Silakan login untuk memantau status persetujuan.
+                </div>
+              )}
 
-          <form onSubmit={handleLogin} className="bg-gray-900 rounded-2xl p-6 space-y-4">
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="email@anda.com"
-                required
-              />
-            </div>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-9"
+                      placeholder="email@anda.com"
+                      required
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="••••••••"
-                required
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-9"
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+                </div>
 
-            {error && (
-              <p className="text-red-400 text-sm bg-red-950 rounded-lg px-3 py-2">{error}</p>
-            )}
+                {error && (
+                  <div className="flex items-start gap-2 text-sm bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg px-3 py-2.5">
+                    <XCircle className="size-4 mt-0.5 shrink-0" />
+                    {error}
+                  </div>
+                )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-lg py-2.5 text-sm transition-colors"
-            >
-              {loading ? 'Masuk...' : 'Masuk'}
-            </button>
-          </form>
+                <Button type="submit" disabled={loading} className="w-full">
+                  {loading && <Loader2 className="size-4 animate-spin" />}
+                  {loading ? 'Masuk...' : 'Masuk'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
 
-          <p className="text-center text-gray-500 text-sm mt-4">
+          <p className="text-center text-muted-foreground text-sm mt-4">
             Belum punya akun?{' '}
-            <a href="/register" className="text-blue-400 hover:text-blue-300">
+            <a href="/register" className="text-primary hover:underline">
               Daftar di sini
             </a>
           </p>
@@ -168,67 +204,83 @@ function TenantLoginInner() {
     );
   }
 
-  // ── Sudah login: tampilkan status pendaftaran ──────────────────────
+  const statusConfig = application ? STATUS_CONFIG[application.status] : null;
+
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white">QweenBill</h1>
-          <p className="text-gray-400 text-sm mt-1">Status Pendaftaran</p>
+          <h1 className="text-2xl font-bold">QweenBill</h1>
+          <p className="text-muted-foreground text-sm mt-1">Status Pendaftaran</p>
         </div>
 
-        <div className="bg-gray-900 rounded-2xl p-6 space-y-4">
-          {appLoading && <p className="text-gray-400 text-sm">Memuat status...</p>}
-
-          {!appLoading && appNotFound && (
-            <p className="text-gray-400 text-sm">
-              Tidak ada data pendaftaran untuk akun ini. Kalau ini akun baru, silakan{' '}
-              <a href="/register" className="text-blue-400 hover:text-blue-300">daftar</a> dulu.
-            </p>
-          )}
-
-          {!appLoading && application && (
-            <>
-              <div className="flex items-center justify-between">
-                <p className="text-white font-medium">{application.namaUsaha}</p>
-                <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLOR[application.status]}`}>
-                  {STATUS_LABEL[application.status]}
-                </span>
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            {appLoading && (
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <Loader2 className="size-4 animate-spin" />
+                Memuat status...
               </div>
+            )}
 
-              {application.status === 'pending' && (
-                <p className="text-gray-400 text-sm">
-                  Pendaftaran Anda sedang ditinjau. Kami akan menghubungi Anda lewat WhatsApp begitu disetujui.
-                </p>
-              )}
+            {!appLoading && appNotFound && (
+              <p className="text-muted-foreground text-sm">
+                Tidak ada data pendaftaran untuk akun ini. Kalau ini akun baru, silakan{' '}
+                <a href="/register" className="text-primary hover:underline">daftar</a> dulu.
+              </p>
+            )}
 
-              {application.status === 'approved' && (
-                <div className="space-y-2">
-                  <p className="text-gray-400 text-sm">
-                    Selamat! Pendaftaran disetujui. Gunakan kode aktivasi berikut saat membuka aplikasi QweenBill pertama kali:
-                  </p>
-                  <p className="text-center text-lg font-mono font-bold text-white bg-gray-800 rounded-lg py-3 tracking-widest">
-                    {application.activationCode}
-                  </p>
+            {!appLoading && application && statusConfig && (
+              <>
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">{application.namaUsaha}</p>
+                  <Badge variant="outline" className={statusConfig.badgeClass}>
+                    {statusConfig.icon}
+                    {statusConfig.label}
+                  </Badge>
                 </div>
-              )}
 
-              {application.status === 'rejected' && (
-                <p className="text-gray-400 text-sm">
-                  Maaf, pendaftaran Anda belum bisa diproses.
-                  {application.rejectionReason ? ` Alasan: ${application.rejectionReason}` : ''}
-                </p>
-              )}
-            </>
-          )}
+                {application.status === 'pending' && (
+                  <p className="text-muted-foreground text-sm">
+                    Pendaftaran Anda sedang ditinjau. Kami akan menghubungi Anda lewat WhatsApp begitu disetujui.
+                  </p>
+                )}
 
-          <button
-            onClick={handleLogout}
-            className="w-full bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg py-2.5 text-sm transition-colors"
-          >
-            Keluar
-          </button>
-        </div>
+                {application.status === 'approved' && (
+                  <div className="space-y-2">
+                    <p className="text-muted-foreground text-sm">
+                      Selamat! Pendaftaran disetujui. Gunakan kode aktivasi berikut saat membuka aplikasi QweenBill pertama kali:
+                    </p>
+                    <div className="relative group">
+                      <div className="text-center text-lg font-mono font-bold bg-muted rounded-lg py-3 tracking-widest">
+                        {application.activationCode}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={handleCopyCode}
+                      >
+                        <Copy className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {application.status === 'rejected' && (
+                  <p className="text-muted-foreground text-sm">
+                    Maaf, pendaftaran Anda belum bisa diproses.
+                    {application.rejectionReason ? ` Alasan: ${application.rejectionReason}` : ''}
+                  </p>
+                )}
+              </>
+            )}
+
+            <Button variant="outline" className="w-full" onClick={handleLogout}>
+              Keluar
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -6,11 +6,19 @@ import { httpsCallable } from 'firebase/functions';
 import { auth, functions } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { isDevModeEnabled, setDevMode } from '@/lib/dev-mode';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Mail, Lock, ArrowRight, Loader2, Shield, Eye, EyeOff } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [devMode, setDevModeState] = useState(false);
@@ -43,17 +51,12 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
 
-      // Set superadmin claim jika belum ada
       const claimSuperAdmin = httpsCallable(functions, 'claimSuperAdmin');
-      await claimSuperAdmin({}).catch(() => {
-        // Abaikan error jika sudah punya claim atau bukan superadmin
-      });
+      await claimSuperAdmin({}).catch(() => {});
 
-      // Refresh token agar claim terbaru terbaca
       await auth.currentUser?.getIdToken(true);
       const tokenResult = await auth.currentUser?.getIdTokenResult();
 
-      // Jika dev mode aktif, izinkan akses meski tanpa claim superadmin
       if (tokenResult?.claims.superadmin !== true) {
         const devModeActive = await isDevModeEnabled();
         if (!devModeActive) {
@@ -73,78 +76,136 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white">QweenBill</h1>
-          <p className="text-gray-400 text-sm mt-1">Superadmin Panel</p>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="text-center space-y-2">
+          <div className="mx-auto w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Shield className="h-6 w-6 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">QweenBill</h1>
+          <p className="text-sm text-muted-foreground">Superadmin Panel</p>
         </div>
 
-        <form onSubmit={handleLogin} className="bg-gray-900 rounded-2xl p-6 space-y-4">
-          <div>
-            <label className="text-sm text-gray-400 mb-1 block">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="email@anda.com"
-              required
-            />
-          </div>
+        <Card className="border-border/50 bg-card shadow-lg">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-lg">Masuk</CardTitle>
+            <CardDescription>Masukkan kredensial Anda untuk melanjutkan</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-9"
+                    placeholder="email@anda.com"
+                    required
+                  />
+                </div>
+              </div>
 
-          <div>
-            <label className="text-sm text-gray-400 mb-1 block">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="••••••••"
-              required
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-9 pr-9"
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
 
-          {error && (
-            <p className="text-red-400 text-sm bg-red-950 rounded-lg px-3 py-2">{error}</p>
-          )}
+              {error && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
+                  <p className="text-sm text-destructive">{error}</p>
+                </div>
+              )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-lg py-2.5 text-sm transition-colors"
-          >
-            {loading ? 'Masuk...' : 'Masuk'}
-          </button>
-        </form>
+              <Button type="submit" disabled={loading} className="w-full" size="lg">
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Masuk...
+                  </>
+                ) : (
+                  <>
+                    Masuk
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
         {process.env.NODE_ENV !== 'production' && !devModeLoading && (
-          <div className="mt-4 bg-gray-900 rounded-2xl p-4">
-            <label className="flex items-center justify-between cursor-pointer">
-              <div>
-                <p className="text-white text-sm font-medium">Dev Mode</p>
-                <p className="text-gray-500 text-xs mt-0.5">
-                  {devMode
-                    ? 'Firestore rules bypass aktif — semua user login bisa baca/tulis'
-                    : 'Nonaktif — custom claims diperlukan'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={toggleDevMode}
-                disabled={devModeLoading}
-                className={`relative w-11 h-6 rounded-full transition-colors ${
-                  devMode ? 'bg-green-500' : 'bg-gray-700'
-                } ${devModeLoading ? 'opacity-50' : ''}`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                    devMode ? 'translate-x-5' : ''
-                  }`}
-                />
-              </button>
-            </label>
-          </div>
+          <>
+            <Separator className="bg-border/50" />
+            <Card className="border-border/50 bg-card shadow-lg">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">Dev Mode</p>
+                      <span
+                        className={cn(
+                          'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                          devMode
+                            ? 'bg-green-500/10 text-green-500 border border-green-500/20'
+                            : 'bg-muted text-muted-foreground'
+                        )}
+                      >
+                        {devMode ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {devMode
+                        ? 'Firestore rules bypass aktif — semua user login bisa baca/tulis'
+                        : 'Nonaktif — custom claims diperlukan'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={toggleDevMode}
+                    disabled={devModeLoading}
+                    className={cn(
+                      'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                      devMode ? 'bg-primary' : 'bg-input',
+                      devModeLoading && 'opacity-50'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
+                        devMode ? 'translate-x-5' : 'translate-x-0'
+                      )}
+                    />
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          </>
         )}
       </div>
     </div>
