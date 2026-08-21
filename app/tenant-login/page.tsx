@@ -6,7 +6,7 @@ import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
-import { Mail, Lock, Loader2, CheckCircle, XCircle, Clock, Copy } from 'lucide-react';
+import { Mail, Lock, Loader2, CheckCircle, XCircle, Clock, Copy, ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -129,11 +129,17 @@ function TenantLoginInner() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div
+        className="flex min-h-screen items-center justify-center bg-background p-4"
+        style={{ backgroundImage: 'radial-gradient(900px 420px at 50% -10%, rgba(145,132,217,.12), transparent)' }}
+      >
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold">QweenBill</h1>
-            <p className="text-muted-foreground text-sm mt-1">Login Mitra Operator</p>
+            <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl border border-primary/30 bg-primary/12">
+              <ShieldCheck className="h-[22px] w-[22px] text-primary" />
+            </div>
+            <h1 className="text-2xl font-medium">QweenBill</h1>
+            <p className="text-muted-foreground text-sm mt-1">Login mitra operator</p>
           </div>
 
           <Card>
@@ -207,10 +213,16 @@ function TenantLoginInner() {
   const statusConfig = application ? STATUS_CONFIG[application.status] : null;
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div
+      className="flex min-h-screen items-center justify-center bg-background p-4"
+      style={{ backgroundImage: 'radial-gradient(900px 420px at 50% -10%, rgba(145,132,217,.12), transparent)' }}
+    >
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold">QweenBill</h1>
+          <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl border border-primary/30 bg-primary/12">
+            <ShieldCheck className="h-[22px] w-[22px] text-primary" />
+          </div>
+          <h1 className="text-2xl font-medium">QweenBill</h1>
           <p className="text-muted-foreground text-sm mt-1">Status Pendaftaran</p>
         </div>
 

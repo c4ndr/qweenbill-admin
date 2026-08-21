@@ -160,7 +160,7 @@ function RegisterForm() {
           whatsapp: form.whatsapp,
           alamat: form.alamat,
         });
-        router.push('/tenant-login?registered=1&auto=1');
+        router.push('/onboarding');
       } else {
         router.push('/tenant-login?registered=1');
       }
@@ -173,13 +173,16 @@ function RegisterForm() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div
+      className="flex min-h-screen items-center justify-center bg-background p-4"
+      style={{ backgroundImage: 'radial-gradient(900px 420px at 50% -10%, rgba(145,132,217,.12), transparent)' }}
+    >
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Shield className="h-6 w-6 text-primary" />
+          <div className="mx-auto flex size-11 items-center justify-center rounded-xl border border-primary/30 bg-primary/12">
+            <Shield className="h-[22px] w-[22px] text-primary" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">QweenBill</h1>
+          <h1 className="text-2xl font-medium tracking-tight text-foreground">QweenBill</h1>
           <p className="text-sm text-muted-foreground">Daftar Jadi Mitra Operator RT/RW Net</p>
           {requestedPlan && (
             <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
@@ -190,7 +193,7 @@ function RegisterForm() {
 
         <Card className="border-border/50 bg-card shadow-lg">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-lg">Buat Akun Baru</CardTitle>
+            <CardTitle className="text-lg font-medium">Buat Akun Baru</CardTitle>
             <CardDescription>Isi data diri Anda untuk mendaftar</CardDescription>
           </CardHeader>
           <CardContent>
@@ -202,7 +205,7 @@ function RegisterForm() {
                   className={cn(
                     'text-sm font-medium rounded-md py-2 transition-colors',
                     daftarType === 'trial'
-                      ? 'bg-background text-foreground shadow-sm'
+                      ? 'bg-card text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
@@ -214,7 +217,7 @@ function RegisterForm() {
                   className={cn(
                     'text-sm font-medium rounded-md py-2 transition-colors',
                     daftarType === 'berbayar'
-                      ? 'bg-background text-foreground shadow-sm'
+                      ? 'bg-card text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
