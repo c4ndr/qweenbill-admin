@@ -2,9 +2,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Download, Smartphone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface AppInfo {
   title: string;
@@ -68,19 +69,11 @@ export default function DownloadPage() {
               <CardContent className="space-y-4">
                 <p className="text-muted-foreground text-sm">{app.desc}</p>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <a
-                    href={app.arm64}
-                    download
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-2.5 py-1.5 text-sm font-medium transition-colors hover:bg-primary/80"
-                  >
+                  <a href={app.arm64} download className={cn(buttonVariants({ variant: 'default' }))}>
                     <Download className="size-4" />
                     Download (arm64)
                   </a>
-                  <a
-                    href={app.arm32}
-                    download
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
-                  >
+                  <a href={app.arm32} download className={cn(buttonVariants({ variant: 'secondary' }))}>
                     <Download className="size-4" />
                     Download (arm32)
                   </a>
